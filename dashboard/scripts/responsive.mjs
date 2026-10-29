@@ -42,6 +42,10 @@ try {
       await page.goto(new URL(route.path, baseUrl).toString(), { waitUntil: 'networkidle' })
       await page.waitForTimeout(250)
       if (await page.locator('#root').innerText() === '') throw new Error(`La página ${route.name} no se renderizó`)
+      if (route.name === 'login') {
+        const values = await page.locator('input[type=email], input[type=password]').evaluateAll((inputs) => inputs.map((input) => input.value))
+        if (values.some((value) => value !== '')) throw new Error('Los campos de acceso deben iniciar vacíos')
+      }
       const dimensions = await page.evaluate(() => ({
         clientWidth: document.documentElement.clientWidth,
         scrollWidth: document.documentElement.scrollWidth,

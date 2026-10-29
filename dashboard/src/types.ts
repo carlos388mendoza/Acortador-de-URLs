@@ -1,9 +1,42 @@
-export type User = { id: number; name: string; email: string; role: 'admin' | 'user'; created_at: string; updated_at: string }
-export type AdminUrl = { id: number; code: string; url: string; short_url: string; click_count: number; created_at: string; updated_at: string; creator: { id: number; name: string } | null }
-export type ApiKey = { id: number; name: string; key_prefix: string; is_active: boolean; last_used_at: string | null; created_at: string; owner: { id: number; name: string } }
-export type Page<T> = { data: T[]; total: number; page: number; limit: number }
-export type Summary = { total_urls: number; total_clicks: number; total_users: number; active_api_keys: number }
-export type CreatorStat = { user: { id: number; name: string; email: string }; url_count: number; click_count: number }
-export type ApiUserResponse = { user: User }
-export type ApiUrlResponse = { admin_url: AdminUrl }
-export type ApiKeyResponse = { api_key: ApiKey; key?: string }
+export type User = {
+  id: number;
+  name: string;
+  email: string;
+  role: "admin" | "user";
+  created_at: string;
+  updated_at: string;
+};
+export type AdminUrl = {
+  id: number;
+  code: string;
+  url: string;
+  short_url: string;
+  click_count: number;
+  created_at: string;
+  updated_at: string;
+  creator: { id: number; name: string } | null;
+};
+export type ApiKey = {
+  id: number;
+  name: string;
+  key_prefix: string;
+  is_active: boolean;
+  last_used_at: string | null;
+  created_at: string;
+  owner: { id: number; name: string };
+};
+export type Page<T> = { data: T[]; total: number; page: number; limit: number };
+export type Summary = {
+  total_urls: number;
+  total_clicks: number;
+  total_users: number;
+  active_api_keys: number;
+};
+export type CreatorStat = {
+  user: { id: number; name: string; email: string };
+  url_count: number;
+  click_count: number;
+};
+export type ApiUserResponse = { user: User };
+export type ApiUrlResponse = { admin_url: AdminUrl };
+export type ApiKeyResponse = { api_key: ApiKey; key?: string };
