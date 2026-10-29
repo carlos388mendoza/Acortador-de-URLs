@@ -10,6 +10,7 @@ import { StatsPage } from "@/pages/stats/page";
 import { AdminPage } from "@/pages/admin/page";
 import { UrlsPage } from "@/pages/urls/page";
 import { UsersPage } from "@/pages/users/page";
+import { SkillPage } from "@/pages/skill/page";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 
 function AppRoutes() {
@@ -24,6 +25,7 @@ function AppRoutes() {
           <Route path="admin" element={<AdminPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="skill" element={<SkillPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Route>

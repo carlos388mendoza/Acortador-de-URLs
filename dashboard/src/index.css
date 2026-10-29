@@ -100,7 +100,7 @@ h4,
   font-family: "Bricolage Grotesque Variable", sans-serif;
 }
 
-:focus-visible {
+:focus-visible:not([data-slot="input"]) {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }

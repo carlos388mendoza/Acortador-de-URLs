@@ -2,7 +2,7 @@ import {
   BookOpen,
   House,
   KeyRound,
-  Link2,
+  QrCode,
   ShieldCheck,
   Sparkles,
   UserRound,
@@ -20,7 +20,7 @@ export type NavItem = {
 
 export const mainNavItems: NavItem[] = [
   { to: "/", label: "Inicio", icon: House, subtitle: "Página" },
-  { to: "/urls", label: "URLs", icon: Link2, subtitle: "Página" },
+  { to: "/urls", label: "URLs", icon: QrCode, subtitle: "Página" },
 ];
 
 export const developerNavItems: NavItem[] = [
@@ -38,11 +38,11 @@ export const developerNavItems: NavItem[] = [
     external: true,
   },
   {
-    to: "/api/skill",
+    to: "/skill",
     label: "SKILL",
     icon: Sparkles,
     subtitle: "Desarrolladores",
-    external: true,
+    external: false,
   },
 ];
 

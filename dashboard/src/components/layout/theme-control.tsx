@@ -25,7 +25,7 @@ export function ThemeControl() {
           aria-label={`Tema ${label}`}
           aria-pressed={theme === value}
           onClick={() => setTheme(value)}
-          className={`h-9 flex-col gap-0.5 px-1 text-[11px] ${
+          className={`h-9 flex-row gap-1 px-1 text-[10px] ${
             theme === value
               ? "bg-card text-foreground shadow-sm hover:bg-card"
               : "text-muted-foreground"

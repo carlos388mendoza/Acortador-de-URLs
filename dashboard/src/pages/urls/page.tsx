@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { Link2, Plus } from "lucide-react";
+import { Plus, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { api, apiDelete } from "@/api/client";
 import type { AdminUrl, Page } from "@/types";
@@ -54,6 +54,7 @@ export function UrlsPage() {
       await refresh();
     } catch (error) {
       toast.error(errorMessage(error));
+      throw error;
     }
   };
 
@@ -63,6 +64,7 @@ export function UrlsPage() {
         label="Enlaces"
         title="URLs"
         subtitle="Todos los enlaces cortos del equipo."
+        icon={QrCode}
         action={
           <Button
             className="h-11 rounded-xl bg-[#1c1917] text-white hover:bg-stone-800"
@@ -92,7 +94,7 @@ export function UrlsPage() {
       ) : urls.data.data.length === 0 ? (
         <Card>
           <CardContent className="grid justify-items-center gap-3 p-10">
-            <Link2 className="size-10 text-muted-foreground" />
+            <QrCode className="size-10 text-muted-foreground" />
             <h2 className="font-semibold">Todavía no hay URLs</h2>
             <p className="text-sm text-muted-foreground">
               Crea tu primer enlace corto.
@@ -144,11 +146,14 @@ export function UrlsPage() {
           url={editing}
           onClose={() => setEditing(undefined)}
           onSaved={() => void refresh()}
+          onQr={(url) => setQrUrl(url)}
         />
       )}
       {deleting && (
         <ConfirmDeleteDialog
-          title="¿Borrar esta URL?"
+          title="¿Eliminar esta URL?"
+          description={deleting.short_url}
+          actionLabel="Eliminar URL"
           onClose={() => setDeleting(null)}
           onConfirm={deleteUrl}
         />

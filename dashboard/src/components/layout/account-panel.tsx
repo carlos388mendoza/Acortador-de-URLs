@@ -24,17 +24,18 @@ export function AccountPanel({
       .toUpperCase() ?? "AU";
 
   return (
-    <div className="grid gap-4 p-4" aria-label="Cuenta">
-      <h2 className="font-heading text-lg font-bold">Cuenta</h2>
-      <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/60 p-3">
-        <Avatar className="size-12">
+    <div className="grid gap-3 p-3" aria-label="Cuenta">
+      <h2 className="font-heading text-base font-bold">Cuenta</h2>
+      <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/60 p-2.5">
+        <Avatar className="size-10">
           <AvatarFallback className="bg-stone-900 font-bold text-white dark:bg-black">
             {initials}
           </AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold">{user?.name ?? "Cuenta"}</p>
-          <p className="truncate text-sm text-muted-foreground">
+          <p className="truncate text-xs text-muted-foreground">
+            {user?.email} ·{" "}
             {user?.role === "admin" ? "Administrador" : "Usuario"}
           </p>
         </div>
@@ -42,17 +43,17 @@ export function AccountPanel({
           ✓ Actual
         </Badge>
       </div>
-      <Button variant="ghost" className="justify-start" onClick={onProfile}>
+      <Button variant="ghost" className="h-9 justify-start" onClick={onProfile}>
         <UserRound /> Mi perfil
       </Button>
-      <div className="grid gap-2">
-        <p className="text-sm font-semibold">Tema</p>
+      <div className="grid gap-1.5">
+        <p className="text-xs font-semibold">Tema</p>
         <ThemeControl />
       </div>
       <Separator />
       <Button
         variant="ghost"
-        className="justify-start text-destructive hover:text-destructive"
+        className="h-9 justify-start text-destructive hover:text-destructive"
         onClick={onLogout}
       >
         <LogOut /> Cerrar sesión
