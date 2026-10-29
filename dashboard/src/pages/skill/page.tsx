@@ -73,42 +73,42 @@ export function SkillPage() {
   };
 
   const components: Components = {
-    h1: ({ children }) => (
+    h1: ({ children }: { children?: React.ReactNode }) => (
       <h1 className="mb-4 mt-8 font-heading text-3xl font-bold first:mt-0">
         {children}
       </h1>
     ),
-    h2: ({ children }) => (
+    h2: ({ children }: { children?: React.ReactNode }) => (
       <h2 className="mb-3 mt-7 font-heading text-2xl font-bold">{children}</h2>
     ),
-    h3: ({ children }) => (
+    h3: ({ children }: { children?: React.ReactNode }) => (
       <h3 className="mb-2 mt-5 font-heading text-xl font-bold">{children}</h3>
     ),
-    p: ({ children }) => (
+    p: ({ children }: { children?: React.ReactNode }) => (
       <p className="my-3 leading-7 text-muted-foreground">{children}</p>
     ),
-    ul: ({ children }) => (
+    ul: ({ children }: { children?: React.ReactNode }) => (
       <ul className="my-3 list-disc space-y-1 pl-6 text-muted-foreground">
         {children}
       </ul>
     ),
-    ol: ({ children }) => (
+    ol: ({ children }: { children?: React.ReactNode }) => (
       <ol className="my-3 list-decimal space-y-1 pl-6 text-muted-foreground">
         {children}
       </ol>
     ),
-    li: ({ children }) => <li className="pl-1">{children}</li>,
-    a: ({ children, href }) => (
+    li: ({ children }: { children?: React.ReactNode }) => <li className="pl-1">{children}</li>,
+    a: ({ children, href }: { children?: React.ReactNode; href?: string }) => (
       <a href={href} className="text-brand underline underline-offset-4">
         {children}
       </a>
     ),
-    code: ({ children }) => (
+    code: ({ children }: { children?: React.ReactNode }) => (
       <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em]">
         {children}
       </code>
     ),
-    pre: ({ children }) => {
+    pre: ({ children }: { children?: React.ReactNode }) => {
       const code = textFromCode(children);
       return (
         <div className="relative my-4 overflow-hidden rounded-xl bg-stone-950 text-stone-100">

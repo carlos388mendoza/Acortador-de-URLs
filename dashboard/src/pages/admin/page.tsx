@@ -1,4 +1,4 @@
-import { KeyRound, Link2, MousePointerClick, Users } from "lucide-react";
+import { KeyRound, MousePointerClick, QrCode, Users } from "lucide-react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/api/client";
@@ -76,7 +76,7 @@ export function AdminPage() {
             to="/users"
           />
           <AdminCard
-            icon={Link2}
+            icon={QrCode}
             title="URLs"
             value={summary.data.total_urls}
             description="Crear, editar y eliminar enlaces de todo el equipo"

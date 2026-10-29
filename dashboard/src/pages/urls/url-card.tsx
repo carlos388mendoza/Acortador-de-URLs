@@ -2,7 +2,6 @@ import {
   Calendar,
   Copy,
   ExternalLink,
-  Link2,
   MousePointerClick,
   Pencil,
   QrCode,
@@ -51,7 +50,7 @@ export function UrlCard({ url, onEdit, onDelete, onQr }: UrlCardProps) {
       <CardHeader className="flex-row items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground">
-            <Link2 className="size-4" />
+            <QrCode className="size-4" />
           </span>
           <CardTitle className="min-w-0 truncate text-base">
             /{url.code}

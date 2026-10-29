@@ -166,7 +166,7 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[264px] min-h-0 flex-col border-r border-border bg-white px-4 py-5 lg:flex dark:bg-background">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[264px] min-h-0 flex-col border-r border-border bg-white px-4 py-5 lg:flex dark:bg-sidebar">
         <Link
           to="/"
           className="mb-4 flex shrink-0 items-center gap-3 px-2 font-bold"
@@ -249,7 +249,7 @@ export function AppLayout() {
       </aside>
 
       <div className="min-w-0 lg:pl-[264px]">
-        <header className="fixed inset-x-0 top-0 z-20 flex h-16 min-w-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur lg:left-[264px] lg:px-8">
+        <header className="fixed inset-x-0 top-0 z-20 flex h-16 min-w-0 items-center gap-3 border-b border-border bg-sidebar/95 px-4 backdrop-blur lg:left-[264px] lg:px-8">
           <Button
             type="button"
             variant="ghost"
@@ -309,7 +309,7 @@ export function AppLayout() {
       >
         <SheetContent
           side="left"
-          className="flex w-[min(88vw,320px)] min-h-0 flex-col border-r border-border bg-white p-4 dark:bg-background"
+          className="flex w-[min(88vw,320px)] min-h-0 flex-col border-r border-border bg-white p-4 dark:bg-sidebar"
           aria-label="Menú lateral"
         >
           <SheetHeader className="mb-4 shrink-0 border-b border-border pb-4">
@@ -477,7 +477,7 @@ function MobileNavItem({
       to={to}
       end={to === "/"}
       className={({ isActive }) =>
-        `grid min-h-12 place-items-center gap-0.5 rounded-xl text-xs ${isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`
+        `grid min-h-12 place-items-center gap-0.5 rounded-xl text-xs ${isActive ? "bg-[#3d1a1c] text-[#ff6b70]" : "text-muted-foreground"}`
       }
     >
       <Icon className="size-5" />

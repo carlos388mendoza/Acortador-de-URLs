@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Copy, ExternalLink, Link2, QrCode } from "lucide-react";
+import { Check, Copy, ExternalLink, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { apiPatch, apiPost } from "@/api/client";
 import type { AdminUrl, ApiUrlResponse } from "@/types";
@@ -134,7 +134,7 @@ export function UrlDialog({ url, onClose, onSaved, onQr }: UrlDialogProps) {
             <DialogHeader className="pr-8">
               <div className="flex items-start gap-3">
                 <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-brand">
-                  <Link2 className="size-5" />
+                  <QrCode className="size-5" />
                 </span>
                 <div>
                   <DialogTitle className="text-xl font-bold">

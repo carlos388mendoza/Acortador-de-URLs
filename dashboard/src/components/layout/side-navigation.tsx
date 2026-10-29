@@ -63,7 +63,7 @@ export function SideNavigation({
         end={to === "/"}
         onClick={onNavigate}
         className={({ isActive }) =>
-          `${classes} ${isActive ? "bg-accent text-accent-foreground hover:bg-accent [&_svg]:text-accent-foreground" : ""}`
+          `${classes} ${isActive ? "bg-[#3d1a1c] text-[#ff6b70] hover:bg-[#3d1a1c] [&_svg]:text-[#ff6b70]" : ""}`
         }
       >
         <Icon className="size-4 shrink-0" />

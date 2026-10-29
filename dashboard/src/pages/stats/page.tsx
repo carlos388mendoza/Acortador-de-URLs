@@ -6,9 +6,9 @@ import {
   Clock,
   Flame,
   KeyRound,
-  Link2,
   MousePointerClick,
   Plus,
+  QrCode,
   Trophy,
   Users,
 } from "lucide-react";
@@ -132,7 +132,7 @@ export function StatsPage() {
         <SummaryCard
           label="URLs creadas"
           value={summary.data.total_urls}
-          icon={Link2}
+          icon={QrCode}
         />
         <SummaryCard
           label="Clics totales"
