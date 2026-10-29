@@ -2,10 +2,12 @@ import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { Hono } from 'hono'
 import app from './index'
+import { securityHeaders } from './middleware/security'
 
 // En producción Vercel sirve public/dashboard y aplica los rewrites de vercel.json.
 // En local hacemos lo mismo aquí: archivos estáticos primero y, si no existe el archivo, index.html (fallback SPA).
 const dev = new Hono()
+dev.use('*', securityHeaders)
 dev.get('/dashboard', (c) => c.redirect('/dashboard/', 301))
 dev.use('/dashboard/*', serveStatic({ root: './public' }))
 dev.get('/dashboard/*', serveStatic({ path: './public/dashboard/index.html' }))

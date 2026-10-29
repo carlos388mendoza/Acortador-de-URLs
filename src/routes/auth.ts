@@ -2,8 +2,15 @@ import { createRoute, z } from '@hono/zod-openapi'
 import { eq } from 'drizzle-orm'
 import { getDb, schema } from '../db'
 import { burnPasswordCheck, clearSession, createSession, hashPassword, verifyPassword } from '../lib/auth'
+import {
+  clearFailedLogins,
+  loginBlockSeconds,
+  recordFailedLogin,
+  sendRateLimited,
+} from '../lib/rate-limit'
+import { getClientIp } from '../lib/request'
 import { createRouter } from '../lib/router'
-import { errorResponse, UserSchema } from '../lib/schemas'
+import { errorResponse, ErrorSchema, UserSchema } from '../lib/schemas'
 import { toUser } from '../lib/serializers'
 import { requireAuth, type AuthEnv } from '../middleware/auth'
 
@@ -38,11 +45,20 @@ const login = createRoute({
   path: '/login',
   tags: ['Auth'],
   summary: 'Iniciar sesión (crea la cookie de sesión)',
+  description:
+    'Tras 5 intentos fallidos para la misma IP y correo, la cuenta queda bloqueada 15 minutos (429 con `Retry-After`). Un login correcto reinicia el contador.',
   request: { body: { content: { 'application/json': { schema: LoginBodySchema } }, required: true } },
   responses: {
     200: { content: { 'application/json': { schema: UserResponse } }, description: 'Sesión iniciada' },
     400: errorResponse('Datos incompletos'),
     401: errorResponse('Credenciales incorrectas'),
+    429: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Demasiados intentos fallidos',
+      headers: z.object({
+        'Retry-After': z.string().openapi({ description: 'Segundos que faltan para poder reintentar' }),
+      }),
+    },
   },
 })
 
@@ -91,15 +107,25 @@ export const authRouter = createRouter<AuthEnv>()
 
 authRouter.openapi(login, async (c) => {
   const { email, password } = c.req.valid('json')
+  const normalizedEmail = email.toLowerCase()
+  const ip = getClientIp(c)
+
+  const blockedFor = await loginBlockSeconds(ip, normalizedEmail)
+  if (blockedFor > 0) return sendRateLimited(c, blockedFor)
+
   const [row] = await getDb()
     .select()
     .from(schema.users)
-    .where(eq(schema.users.email, email.toLowerCase()))
+    .where(eq(schema.users.email, normalizedEmail))
     .limit(1)
 
   const valid = row ? await verifyPassword(password, row.passwordHash) : await burnPasswordCheck(password)
-  if (!row || !valid) return c.json({ error: 'Credenciales incorrectas' }, 401)
+  if (!row || !valid) {
+    await recordFailedLogin(ip, normalizedEmail)
+    return c.json({ error: 'Credenciales incorrectas' }, 401)
+  }
 
+  await clearFailedLogins(ip, normalizedEmail)
   await createSession(c, row.id)
   return c.json({ user: toUser(row) }, 200)
 })

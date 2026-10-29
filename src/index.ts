@@ -1,6 +1,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { Scalar } from '@scalar/hono-api-reference'
 import { FAVICON_ICO, LOGO_PNG } from './lib/branding'
+import { securityHeaders } from './middleware/security'
 import { adminSearchRouter } from './routes/admin-search'
 import { adminStatsRouter } from './routes/admin-stats'
 import { adminUrlsRouter } from './routes/admin-urls'
@@ -11,6 +12,9 @@ import { publicUrlsRouter } from './routes/public-urls'
 import { redirectRouter } from './routes/redirect'
 
 const app = new OpenAPIHono()
+
+// Cabeceras de seguridad en todas las respuestas, incluidas las de error y la documentación
+app.use('*', securityHeaders)
 
 const api = new OpenAPIHono()
 
