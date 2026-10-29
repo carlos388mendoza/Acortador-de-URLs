@@ -4,7 +4,7 @@ Dashboard administrativo en español para crear enlaces cortos y administrar usu
 
 ## Cómo correrlo en Ubuntu/WSL
 
-1. Abre una terminal de Ubuntu y entra al proyecto:
+1. Abre Ubuntu y entra al proyecto:
 
    ```bash
    cd ~/proyectos/Acortador-de-URLs/dashboard
@@ -24,29 +24,50 @@ Dashboard administrativo en español para crear enlaces cortos y administrar usu
 
 4. En el navegador de Windows abre <http://localhost:5173/dashboard/>. Para detenerlo, vuelve a la terminal y presiona `Ctrl+C`.
 
-El archivo local `.env.local` activa los datos de prueba (`VITE_USE_MOCKS=true`). Así puedes navegar y probar sin configurar una base de datos ni iniciar el backend. La pantalla de acceso viene rellenada con datos de ejemplo; con mocks puedes entrar sin una cuenta real.
+## Modo de prueba y backend real
 
-Para conectar un backend local en el puerto 3000, cambia `VITE_USE_MOCKS=false` en `.env.local`. El proxy de Vite reenvía `/api` a `VITE_API_TARGET` (por defecto `http://localhost:3000`). Si Carlos te da un dominio de producción, puedes usarlo como `VITE_API_TARGET=https://dominio`.
+`.env.local` no se sube a Git. Para probar sin backend, configura:
+
+```env
+VITE_USE_MOCKS=true
+VITE_API_TARGET=http://localhost:3000
+```
+
+Para conectar el backend real que se está ejecutando en local o desplegado, usa `VITE_USE_MOCKS=false` y configura `VITE_API_TARGET` con su dominio. Vite carga estas variables para el proxy `/api`. En producción los mocks siempre quedan desactivados, aunque `VITE_USE_MOCKS` esté configurado por error.
 
 ## Atajos de teclado
 
 - `Ctrl+K` en Windows/Linux o `⌘K` en macOS: abrir la paleta de comandos.
 - `/`: enfocar el buscador.
 - `N`: crear una URL.
-- `G` y luego `H`: Inicio; `G` y `U`: URLs; `G` y `K`: API keys; `G` y `P`: Personas.
-- `?`: mostrar la lista de atajos.
+- `G` y luego `H`, `U`, `K` o `P`: Inicio, URLs, API keys o Personas.
+- `?`: mostrar los atajos.
 - `Esc`: cerrar el diálogo abierto.
 
-Los atajos de una letra se desactivan al escribir en campos de texto.
+Los atajos de una letra se desactivan al escribir en un campo. La paleta busca URLs, usuarios y keys en vivo.
 
-## Verificación y capturas
+## Estructura del código
+
+- `src/api/`: cliente único con cookies y respuestas simuladas de desarrollo.
+- `src/components/layout/`: menú, tema, paleta, atajos, sesión y protección de rutas.
+- `src/components/shared/`: skeletons y confirmación reutilizable.
+- `src/components/ui/`: componentes de shadcn/ui.
+- `src/pages/urls/`: tarjetas de URL, formularios y códigos QR.
+- `src/pages/keys/`: tarjetas y diálogos de API keys.
+- `src/pages/users/`: tarjetas y formulario de usuarios.
+- `src/pages/stats/`: resumen, gráficas y tarjetas de estadísticas.
+- `src/pages/profile/`: consulta y formulario del perfil.
+- `src/pages/login/`: pantalla de acceso.
+- `src/pages/not-found/`: página 404.
+
+## Formato y verificación
 
 ```bash
+npm run format
+npm run format:check
 npm run build
 npm run lint
 npm run check:responsive
 ```
 
-`check:responsive` inicia Vite con mocks, revisa Inicio, Login, URLs, API keys, Personas y Mi perfil a 320, 375, 768, 1024 y 1440 px. Falla si aparece scroll horizontal y comprueba los atajos principales, incluido `⌘K` simulando macOS. Guarda capturas en `screenshots/`; esa carpeta se ignora en Git.
-
-Las tarjetas están en cuadrículas responsivas. La capa de red está centralizada en `src/api/`; `src/pages.tsx` contiene las pantallas de gestión y las estadísticas; `src/components/ui/` contiene los componentes shadcn/ui.
+`check:responsive` inicia Vite con mocks en un puerto separado, revisa seis páginas a 320, 375, 768, 1024 y 1440 px, y prueba el desbordamiento, los atajos, la búsqueda, QR y la tecla `⌘` simulando macOS. Crea capturas locales en `screenshots/`, carpeta ignorada por Git.
