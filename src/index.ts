@@ -1,6 +1,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { Scalar } from '@scalar/hono-api-reference'
 import { FAVICON_ICO, LOGO_PNG } from './lib/branding'
+import { adminSearchRouter } from './routes/admin-search'
 import { adminStatsRouter } from './routes/admin-stats'
 import { adminUrlsRouter } from './routes/admin-urls'
 import { adminUsersRouter } from './routes/admin-users'
@@ -28,6 +29,7 @@ api.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
 
 api.route('/urls', publicUrlsRouter)
 api.route('/admin/api-keys', apiKeysRouter)
+api.route('/admin/search', adminSearchRouter)
 api.route('/admin/users', adminUsersRouter)
 api.route('/admin/urls', adminUrlsRouter)
 api.route('/admin/stats', adminStatsRouter)

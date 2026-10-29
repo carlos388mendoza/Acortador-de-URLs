@@ -3,21 +3,9 @@ import { desc, eq } from 'drizzle-orm'
 import { getDb, schema } from '../db'
 import { generateApiKey, hashApiKey, keyPrefix } from '../lib/api-keys'
 import { createRouter } from '../lib/router'
-import { errorResponse } from '../lib/schemas'
+import { ApiKeySchema, errorResponse } from '../lib/schemas'
 import { toApiKey } from '../lib/serializers'
 import { requireAuth, type AuthEnv } from '../middleware/auth'
-
-const ApiKeySchema = z
-  .object({
-    id: z.number().int(),
-    name: z.string(),
-    key_prefix: z.string().openapi({ example: 'sk_aB3dE' }),
-    is_active: z.boolean(),
-    last_used_at: z.string().nullable(),
-    created_at: z.string(),
-    owner: z.object({ id: z.number().int(), name: z.string() }),
-  })
-  .openapi('ApiKey')
 
 const IdParam = z.object({
   id: z.coerce.number().int().positive({ error: 'El id no es válido' }).openapi({ example: 1 }),
