@@ -48,8 +48,7 @@ export function StatsPage() {
   const [days, setDays] = useState("7");
   const navigate = useNavigate();
   const createUrl = () => {
-    navigate("/urls");
-    window.setTimeout(() => window.dispatchEvent(new Event("new-url")), 100);
+    navigate("/urls", { state: { openNewUrl: true } });
   };
   const me = useQuery({
     queryKey: ["me"],

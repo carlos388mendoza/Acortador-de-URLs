@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { api, apiDelete } from "@/api/client";
@@ -18,7 +18,12 @@ import { PageHeading } from "@/components/layout/page-heading";
 
 export function UrlsPage() {
   const [params, setParams] = useSearchParams();
-  const [editing, setEditing] = useState<AdminUrl | null | undefined>();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const routeState = location.state as { openNewUrl?: boolean } | null;
+  const [editing, setEditing] = useState<AdminUrl | null | undefined>(() =>
+    routeState?.openNewUrl ? null : undefined,
+  );
   const [deleting, setDeleting] = useState<AdminUrl | null>(null);
   const [qrUrl, setQrUrl] = useState<AdminUrl | null>(null);
   const queryClient = useQueryClient();
@@ -31,6 +36,14 @@ export function UrlsPage() {
         `/api/admin/urls?page=${page}&limit=9&search=${encodeURIComponent(search)}`,
       ),
   });
+
+  useEffect(() => {
+    if (!routeState?.openNewUrl) return;
+    navigate(location.pathname + location.search, {
+      replace: true,
+      state: null,
+    });
+  }, [location.pathname, location.search, routeState?.openNewUrl, navigate]);
 
   useEffect(() => {
     const openCreateDialog = () => setEditing(null);

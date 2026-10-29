@@ -6,6 +6,7 @@ type KeyboardShortcutsOptions = {
   openPalette: () => void;
   openHelp: () => void;
   closeDialogs: () => void;
+  onCreateUrl: () => void;
 };
 
 /** Registra los atajos globales y omite las letras cuando se escribe en un campo. */
@@ -14,6 +15,7 @@ export function useKeyboardShortcuts({
   openPalette,
   openHelp,
   closeDialogs,
+  onCreateUrl,
 }: KeyboardShortcutsOptions) {
   useEffect(() => {
     let waitingForDestination = false;
@@ -23,11 +25,6 @@ export function useKeyboardShortcuts({
       target instanceof HTMLElement &&
       (target.isContentEditable ||
         ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
-
-    const createUrl = () => {
-      navigate("/urls");
-      window.setTimeout(() => window.dispatchEvent(new Event("new-url")), 100);
-    };
 
     const handleKeydown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
@@ -77,7 +74,7 @@ export function useKeyboardShortcuts({
         if (searchInput) searchInput.focus();
         else openPalette();
       } else if (event.key.toLowerCase() === "n") {
-        createUrl();
+        onCreateUrl();
       }
     };
 
@@ -86,5 +83,5 @@ export function useKeyboardShortcuts({
       window.removeEventListener("keydown", handleKeydown);
       window.clearTimeout(destinationTimer);
     };
-  }, [navigate, openPalette, openHelp, closeDialogs]);
+  }, [navigate, openPalette, openHelp, closeDialogs, onCreateUrl]);
 }
