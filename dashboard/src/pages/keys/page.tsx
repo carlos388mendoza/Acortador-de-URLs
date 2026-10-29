@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { KeyRound, Plus } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -20,7 +21,10 @@ import {
 
 export function KeysPage() {
   const queryClient = useQueryClient();
-  const [creating, setCreating] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const routeState = location.state as { openNewApiKey?: boolean } | null;
+  const [creating, setCreating] = useState(routeState?.openNewApiKey ?? false);
   const [secret, setSecret] = useState("");
   const [renaming, setRenaming] = useState<ApiKey | null>(null);
   const [deactivating, setDeactivating] = useState<ApiKey | null>(null);
@@ -28,6 +32,14 @@ export function KeysPage() {
     queryKey: ["keys"],
     queryFn: () => api<{ data: ApiKey[] }>("/api/admin/api-keys"),
   });
+
+  useEffect(() => {
+    if (!routeState?.openNewApiKey) return;
+    navigate(location.pathname + location.search, {
+      replace: true,
+      state: null,
+    });
+  }, [location.pathname, location.search, routeState?.openNewApiKey, navigate]);
 
   useEffect(() => {
     const openCreateDialog = () => setCreating(true);

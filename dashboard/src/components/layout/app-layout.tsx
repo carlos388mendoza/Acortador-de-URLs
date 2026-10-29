@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import {
   Link,
   NavLink,
@@ -35,13 +35,18 @@ import {
 } from "@/components/ui/sheet";
 import { Toaster } from "@/components/ui/sonner";
 import { AccountPanel } from "./account-panel";
-import { CommandPalette } from "./command-palette";
 import { KeyboardShortcutsDialog } from "./keyboard-shortcuts-dialog";
 import { LogoutConfirmDialog } from "./logout-confirm-dialog";
 import { useKeyboardShortcuts } from "./keyboard-shortcuts";
 import { SideNavigation } from "./side-navigation";
 import { ThemeControl } from "./theme-control";
 import { Kbd } from "@/components/ui/kbd";
+
+const CommandPalette = lazy(() =>
+  import("./command-palette").then((module) => ({
+    default: module.CommandPalette,
+  })),
+);
 
 type OpenLayer = "menu" | "palette" | "account" | "help" | "logout" | null;
 
@@ -91,13 +96,6 @@ export function AppLayout() {
     window.setTimeout(() => setOpenLayer("logout"), 250);
   }, []);
 
-  useKeyboardShortcuts({
-    navigate,
-    openPalette: togglePalette,
-    openHelp,
-    closeDialogs,
-  });
-
   useEffect(() => {
     document.title = `${title} | Acortador de URLs`;
   }, [title]);
@@ -118,18 +116,29 @@ export function AppLayout() {
 
   const createUrl = () => {
     setOpenLayer(null);
-    navigate("/urls");
-    window.setTimeout(() => window.dispatchEvent(new Event("new-url")), 100);
+    if (location.pathname === "/urls") {
+      window.dispatchEvent(new Event("new-url"));
+      return;
+    }
+    navigate("/urls", { state: { openNewUrl: true } });
   };
 
   const createKey = () => {
     setOpenLayer(null);
-    navigate("/api-keys");
-    window.setTimeout(
-      () => window.dispatchEvent(new Event("new-api-key")),
-      100,
-    );
+    if (location.pathname === "/api-keys") {
+      window.dispatchEvent(new Event("new-api-key"));
+      return;
+    }
+    navigate("/api-keys", { state: { openNewApiKey: true } });
   };
+
+  useKeyboardShortcuts({
+    navigate,
+    openPalette: togglePalette,
+    openHelp,
+    closeDialogs,
+    onCreateUrl: createUrl,
+  });
 
   const logout = async () => {
     try {
@@ -421,20 +430,24 @@ export function AppLayout() {
         </button>
       </nav>
 
-      <CommandPalette
-        open={openLayer === "palette"}
-        onOpenChange={(open) =>
-          setOpenLayer((current) =>
-            open ? "palette" : current === "palette" ? null : current,
-          )
-        }
-        isMac={isMac}
-        isAdmin={Boolean(isAdmin)}
-        onNavigate={navigate}
-        onRequestLogout={requestLogout}
-        onCreateUrl={createUrl}
-        onCreateKey={createKey}
-      />
+      {openLayer === "palette" && (
+        <Suspense fallback={null}>
+          <CommandPalette
+            open={openLayer === "palette"}
+            onOpenChange={(open) =>
+              setOpenLayer((current) =>
+                open ? "palette" : current === "palette" ? null : current,
+              )
+            }
+            isMac={isMac}
+            isAdmin={Boolean(isAdmin)}
+            onNavigate={navigate}
+            onRequestLogout={requestLogout}
+            onCreateUrl={createUrl}
+            onCreateKey={createKey}
+          />
+        </Suspense>
+      )}
       <LogoutConfirmDialog
         open={openLayer === "logout"}
         onOpenChange={(open) => setOpenLayer(open ? "logout" : null)}
