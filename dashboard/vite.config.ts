@@ -6,6 +6,6 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   base: '/dashboard/',
   plugins: [react(), tailwindcss()],
-  resolve: { alias: { '@': path.resolve(__dirname, './src') } },
+  resolve: { alias: { '@': path.resolve(import.meta.dirname, './src') } },
   server: { proxy: { '/api': { target: process.env.VITE_API_TARGET || 'http://localhost:3000', changeOrigin: true, secure: true } } },
 })
