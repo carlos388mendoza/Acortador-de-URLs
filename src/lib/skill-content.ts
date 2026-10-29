@@ -204,4 +204,4 @@ Checklist para integrar la API en un proyecto nuevo:
 8. Si se necesita la URL original, llamar a \`GET /api/urls/{code}\`.
 9. Para redirigir usuarios, usar directamente \`GET /{code}\` (302).
 10. Si la integración es desde el frontend, mover la llamada a un backend propio para no exponer la key.
-11. Probar contra producción con un caso válido y uno inválido (URL no http) antes de entregar.`
+11. Probar contra producción con un caso válido y uno inválido (URL no http) antes de dar la tarea por terminada.`

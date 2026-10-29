@@ -10,7 +10,7 @@
 | 9 | Despliegue en Vercel (producción) | — (directo a main) | varios | ✅ Funcionando |
 | 10 | Neon test branch + Vitest + GitHub Actions | — | — | ⏳ Pendiente |
 | 11 | Integración del dashboard (servir build) | — | — | ✅ Servido en `/dashboard` |
-| 12 | Documentación (`docs/arquitectura.md`, `docs/preguntas-profesor.md`) | — (directo a main) | cec84e2 | ✅ Mergeado |
+| 12 | Documentación (`docs/arquitectura.md`, `docs/requisitos.md`) | — (directo a main) | cec84e2 | ✅ Mergeado |
 
 Nota: las fases 9 y 12 se subieron directamente a `main` por motivos de despliegue iterativo. Las fases 6, 7 y 8 siguieron el flujo de PR.
 
