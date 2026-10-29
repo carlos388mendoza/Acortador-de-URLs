@@ -1,6 +1,7 @@
 import { eq, like } from 'drizzle-orm'
 import { getDb, schema } from '../src/db'
 import { hashPassword } from '../src/lib/auth'
+import { env } from '../src/lib/env'
 
 const db = getDb()
 
@@ -47,7 +48,12 @@ const DEMO_URLS = [
 
 const pick = <T>(items: readonly T[]): T => items[Math.floor(Math.random() * items.length)] as T
 
-// Crea el usuario si no existe y devuelve su id. Secuencial para evitar carreras.
+const fail = (message: string): never => {
+  console.error(message)
+  throw new Error(message)
+}
+
+// Crea el usuario si no existe y, siempre, lo vuelve a buscar por correo para obtener su id real
 async function ensureUser(name: string, email: string): Promise<number> {
   const randomPassword = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('')
   await db
@@ -55,42 +61,40 @@ async function ensureUser(name: string, email: string): Promise<number> {
     .values({ name, email, passwordHash: await hashPassword(randomPassword), role: 'user' })
     .onConflictDoNothing({ target: schema.users.email })
   const [row] = await db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.email, email)).limit(1)
-  if (!row) throw new Error(`No se pudo crear el usuario ${email}`)
+  if (!row) return fail(`No se pudo crear el usuario ${email}`)
   return row.id
 }
 
-const proc = (globalThis as { process?: { env?: Record<string, string | undefined>; exit?: (code?: number) => never } }).process
-const adminEmail = proc?.env?.ADMIN_EMAIL?.trim().toLowerCase()
+const adminEmail = env.ADMIN_EMAIL?.trim().toLowerCase()
 const [admin] = adminEmail
   ? await db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.email, adminEmail)).limit(1)
   : []
-if (!admin) {
-  console.error('No existe el admin. Ejecuta primero: npm run seed:admin')
-  proc?.exit?.(1)
-}
+if (!admin) fail('No existe el admin. Ejecuta primero: npm run seed:admin')
 
-// Crear los usuarios demo uno por uno (secuencial) y obtener sus ids
+// Cada usuario demo se crea (o se busca) uno por uno y con await: así siempre tenemos su id antes de crear URLs
 const ownerIds: number[] = [admin.id]
 for (const u of DEMO_USERS) {
-  const id = await ensureUser(u.name, u.email)
-  ownerIds.push(id)
+  ownerIds.push(await ensureUser(u.name, u.email))
 }
 
 await db.delete(schema.urls).where(like(schema.urls.code, `${DEMO_PREFIX}%`))
 
 let totalClicks = 0
 for (const [index, [slug, url]] of DEMO_URLS.entries()) {
+  const ownerId = ownerIds[index % ownerIds.length]
+  if (ownerId === undefined) fail(`No hay creador para la URL demo ${slug}`)
+
   const [created] = await db
     .insert(schema.urls)
     .values({
       code: `${DEMO_PREFIX}${slug}`,
       url,
-      userId: ownerIds[index % ownerIds.length]!,
+      userId: ownerId,
       // Se reparten las fechas de creación en el último mes
       createdAt: new Date(Date.now() - Math.floor(Math.random() * DAYS) * 86_400_000),
     })
     .returning({ id: schema.urls.id })
-  if (!created) continue
+  if (!created) fail(`No se pudo crear la URL demo ${slug}`)
 
   // Las primeras URLs tienen más tráfico, para que "top URLs" tenga un ranking interesante
   const clickCount = Math.max(5, Math.floor(Math.random() * 40) + (DEMO_URLS.length - index) * 8)
@@ -107,14 +111,17 @@ for (const [index, [slug, url]] of DEMO_URLS.entries()) {
   totalClicks += clickCount
 }
 
-// Comprobación final: ninguna URL demo puede quedar sin creador
-const broken = await db.select({ code: schema.urls.code }).from(schema.urls).where(like(schema.urls.code, `${DEMO_PREFIX}%`)).then((rows) => rows.filter((r) => r.code)) // placeholder
-const nullCreators = await db.select({ code: schema.urls.code, userId: schema.urls.userId }).from(schema.urls).where(like(schema.urls.code, `${DEMO_PREFIX}%`))
-const bad = nullCreators.filter((r) => r.userId === null)
-if (bad.length > 0) {
-  console.error('ERROR: URLs demo sin creador:', bad.map((r) => r.code).join(', '))
-  proc?.exit?.(1)
+// Comprobación final: deben existir todas las URLs demo y ninguna puede quedar sin creador
+const demoUrls = await db
+  .select({ code: schema.urls.code, userId: schema.urls.userId })
+  .from(schema.urls)
+  .where(like(schema.urls.code, `${DEMO_PREFIX}%`))
+if (demoUrls.length !== DEMO_URLS.length) {
+  fail(`Se esperaban ${DEMO_URLS.length} URLs demo y hay ${demoUrls.length}`)
 }
+const orphans = demoUrls.filter((r) => r.userId === null)
+if (orphans.length > 0) fail(`URLs demo sin creador: ${orphans.map((r) => r.code).join(', ')}`)
 
-console.log(`Datos de prueba listos: ${DEMO_URLS.length} URLs, ${totalClicks} clics, ${DEMO_USERS.length} usuarios demo`)
-console.log(`Creadores: ${ownerIds.length} (${ownerIds.join(', ')})`)
+console.log(
+  `Datos de prueba listos: ${DEMO_URLS.length} URLs (todas con creador), ${totalClicks} clics, ${DEMO_USERS.length} usuarios demo`,
+)
