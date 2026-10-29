@@ -1,0 +1,180 @@
+# Acortador de URLs
+
+Proyecto universitario en pareja: un acortador de URLs de uso general (estilo dub.co) con una API REST documentada y un dashboard administrativo.
+
+- **Carlos** (carlos388mendoza): backend, base de datos, autenticación, API keys, estadísticas e infraestructura. Herramientas: Claude Code / OpenCode.
+- **Compañero**: dashboard en React (interfaz, formularios, gráficas, QR). Herramienta: Codex.
+
+Lee este archivo completo antes de escribir código. Si algo aquí contradice una instrucción del chat, pregunta antes de actuar.
+
+## Stack
+
+- TypeScript estricto en todo el proyecto (sin `any`).
+- Backend: Hono + `@hono/zod-openapi` + Zod. Documentación con `@scalar/hono-api-reference`.
+- Base de datos: Postgres en Neon, con Drizzle ORM (`drizzle-orm/neon-http` + `@neondatabase/serverless`).
+- Códigos cortos: `nanoid` con alfabeto base62, 6 caracteres.
+- Dashboard: React + Vite + React Router + TanStack Query + Tailwind (shadcn/ui opcional) + Recharts + `qr-code-styling`.
+- Despliegue: Vercel (detecta Hono automáticamente desde `src/index.ts`).
+
+## Estructura del repositorio
+
+```
+/
+├─ src/                  Backend Hono (Carlos)
+│  ├─ index.ts           App principal, export default (Vercel la detecta)
+│  ├─ dev.ts             Servidor local en el puerto 3000 (carga .env)
+│  ├─ db/                schema.ts e index.ts
+│  ├─ routes/            Un router por recurso
+│  ├─ middleware/        Sesión, roles y API keys
+│  └─ lib/               Utilidades
+├─ dashboard/            App React + Vite (compañero)
+├─ public/dashboard/     Build del dashboard: generado, nunca se edita a mano y está en .gitignore
+├─ drizzle.config.ts
+├─ AGENTS.md             Este archivo
+└─ CLAUDE.md             Contiene solo: @AGENTS.md
+```
+
+## Rutas de la aplicación
+
+| Ruta | Qué hace |
+|---|---|
+| `POST /api/urls/new` | API pública: crear URL corta |
+| `GET /api/urls/{code}` | API pública: obtener URL |
+| `/api/auth/*` | Login, logout y sesión actual |
+| `/api/admin/*` | Endpoints que consume el dashboard (requieren sesión) |
+| `GET /api/doc` | Especificación OpenAPI en JSON |
+| `GET /api/reference` | Interfaz de Scalar |
+| `/dashboard/*` | Dashboard (SPA). Cualquier subruta devuelve el index.html |
+| `GET /{code}` | Redirección 302 a la URL original. Se registra al final |
+
+Códigos reservados que nunca se pueden usar como código corto: `api`, `dashboard`, `docs`, `favicon.ico`, `robots.txt`, `assets`.
+
+## Convenciones
+
+- Todo el JSON de la API usa `snake_case` (`short_url`, `created_at`, `is_active`, `last_used_at`).
+- Fechas en ISO 8601 UTC sin milisegundos: `2026-10-28T15:42:10Z`.
+- Errores siempre con la forma `{ "error": "Mensaje en español" }`.
+- Listados paginados devuelven `{ "data": [...], "total": 0, "page": 1, "limit": 20 }` y aceptan `?page=1&limit=20`.
+- Todas las rutas de `/api` se definen con `createRoute` para que aparezcan en Scalar.
+- Mensajes de commit en español con prefijo: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`.
+
+## API pública (ya definida por el enunciado)
+
+`POST /api/urls/new` con `{ "url": "https://..." }`:
+- `201` → `{ "code", "url", "short_url", "created_at" }`
+- `400` → `{ "error": "La URL proporcionada no es válida" }` (solo se aceptan http y https)
+- Header opcional `Authorization: Bearer <api_key>`: si viene y es válida, la URL se asocia al dueño de la key y se actualiza `last_used_at`. Si viene pero es inválida o está desactivada → `401 { "error": "API key inválida" }`.
+
+`GET /api/urls/{code}`:
+- `200` → mismo objeto que arriba
+- `404` → `{ "error": "URL no encontrada" }`
+
+`GET /{code}` → `302` con header `Location`. El clic se registra en segundo plano con `waitUntil` de `@vercel/functions`. URLs borradas (`deleted_at` no nulo) devuelven 404.
+
+## Contrato de autenticación y administración
+
+Este contrato es el acuerdo entre backend y dashboard. Ninguno de los dos lo cambia sin avisar al otro y actualizar este archivo.
+
+Sesión: cookie `httpOnly`, `sameSite=Lax`, `secure` en producción, firmada con `JWT_SECRET`. El dashboard hace todas sus peticiones con `credentials: 'include'`. Sin sesión → `401 { "error": "No autenticado" }`. Sin permiso → `403 { "error": "No autorizado" }`.
+
+Roles: `admin` puede todo. `user` solo ve y maneja sus propias URLs y API keys, y no puede administrar usuarios.
+
+### Auth
+| Método y ruta | Body | Respuesta |
+|---|---|---|
+| `POST /api/auth/login` | `{ email, password }` | `200 { user }` y crea la cookie. `401` si las credenciales son incorrectas |
+| `POST /api/auth/logout` | | `204` |
+| `GET /api/auth/me` | | `200 { user }` o `401` |
+
+Objeto `user`: `{ id, name, email, role, created_at, updated_at }` (nunca incluye el hash).
+
+### Usuarios (solo admin)
+| Método y ruta | Body | Respuesta |
+|---|---|---|
+| `GET /api/admin/users?page&limit&search` | | Listado paginado de `user` |
+| `POST /api/admin/users` | `{ name, email, password, role }` | `201 { user }`. `409` si el email ya existe |
+| `PATCH /api/admin/users/{id}` | Cualquiera de `{ name, email, password, role }` | `200 { user }` |
+| `DELETE /api/admin/users/{id}` | | `204`. Un admin no puede borrarse a sí mismo |
+
+### URLs
+| Método y ruta | Body | Respuesta |
+|---|---|---|
+| `GET /api/admin/urls?page&limit&search` | | Listado paginado de `admin_url` |
+| `POST /api/admin/urls` | `{ url, code? }` | `201 { admin_url }`. `409` si el código existe o es reservado |
+| `PATCH /api/admin/urls/{id}` | `{ url?, code? }` | `200 { admin_url }` |
+| `DELETE /api/admin/urls/{id}` | | `204` (borrado suave con `deleted_at`) |
+
+Objeto `admin_url`: `{ id, code, url, short_url, click_count, created_at, updated_at, creator: { id, name } | null }`.
+
+### API keys
+| Método y ruta | Body | Respuesta |
+|---|---|---|
+| `GET /api/admin/api-keys` | | `{ data: [api_key] }` |
+| `POST /api/admin/api-keys` | `{ name }` | `201 { api_key, key }`. `key` es la clave completa y solo se devuelve aquí |
+| `PATCH /api/admin/api-keys/{id}` | `{ name?, is_active? }` | `200 { api_key }` |
+| `DELETE /api/admin/api-keys/{id}` | | `204` (pone `is_active = false`, no borra la fila) |
+
+Objeto `api_key`: `{ id, name, key_prefix, is_active, last_used_at, created_at, owner: { id, name } }`.
+Formato de la clave: `sk_` + 32 caracteres aleatorios. Se guarda solo su hash SHA-256. `key_prefix` son los primeros 8 caracteres.
+
+### Estadísticas
+| Método y ruta | Respuesta |
+|---|---|
+| `GET /api/admin/stats/summary` | `{ total_urls, total_clicks, total_users, active_api_keys }` |
+| `GET /api/admin/stats/top-urls?limit=10` | `{ data: [admin_url] }` ordenado por `click_count` |
+| `GET /api/admin/stats/recent-urls?limit=10` | `{ data: [admin_url] }` ordenado por `created_at` |
+| `GET /api/admin/stats/top-creators?limit=10` | `{ data: [{ user: { id, name, email }, url_count, click_count }] }` |
+| `GET /api/admin/stats/clicks-per-day?days=30` | `{ data: [{ date: "2026-10-28", clicks }] }` con días sin clics en 0 |
+
+Para un `user` normal, las estadísticas se calculan solo con sus propias URLs.
+
+## Modelo de datos
+
+- `users`: id, name, email (único), password_hash (bcryptjs), role (`admin`/`user`), created_at, updated_at
+- `api_keys`: id, user_id, name, key_prefix, key_hash (único), is_active, last_used_at, created_at
+- `urls`: id, code (único), url, user_id, api_key_id, click_count, created_at, updated_at, deleted_at
+- `clicks`: id, url_id, clicked_at, referrer, user_agent
+
+## Variables de entorno
+
+`.env` nunca se sube al repositorio y su contenido nunca se muestra en el chat ni en logs. Mantener `.env.example` actualizado sin valores reales.
+
+- `DATABASE_URL`: cadena de conexión pooled de Neon
+- `BASE_URL`: dominio público (en local se deduce de la petición)
+- `JWT_SECRET`: cadena aleatoria larga
+- `ADMIN_EMAIL`, `ADMIN_PASSWORD`: solo para el script que crea el primer admin
+
+## Dashboard
+
+- Vive en `dashboard/` con su propio `package.json`.
+- Vite con `base: '/dashboard/'` y proxy de `/api` hacia `http://localhost:3000` en desarrollo.
+- React Router con `basename="/dashboard"`.
+- Todas las llamadas a la API pasan por un solo cliente en `dashboard/src/api/`, que usa `credentials: 'include'`.
+- Mientras un endpoint no exista todavía, se usan datos simulados activados con `VITE_USE_MOCKS=true`, con la forma exacta del contrato de arriba.
+- Páginas: Login, Inicio (estadísticas), URLs, API keys, Usuarios (solo visible para admin).
+- Debe verse bien en el celular.
+
+## Fases
+
+**Carlos**
+- Fase 0: base del proyecto, API pública, OpenAPI y Scalar, redirección, despliegue.
+- Fase 1: usuarios, login, sesión, roles y script para crear el primer admin.
+- Fase 2: API keys y su uso en `POST /api/urls/new`.
+- Fase 3: CRUD de administración de usuarios y URLs.
+- Fase 4: estadísticas.
+- Fase 5: servir el dashboard en `/dashboard` (build de Vite a `public/dashboard`, fallback SPA, script `build` de la raíz) y verificar en Vercel.
+
+**Compañero**
+- Fase A: proyecto Vite, estructura, layout, rutas, cliente de API, mocks y pantalla de login.
+- Fase B: pantallas de URLs, API keys y usuarios.
+- Fase C: panel de estadísticas con gráficas.
+- Fase D: códigos QR con logo opcional y descarga en PNG.
+- Fase E: pulido (carga, errores, móvil) y README.
+
+## Flujo de Git
+
+- Una rama por fase: `feature/fase-1-auth`, `feature/dashboard-login`, etc.
+- Nunca push directo a `main` (excepto la Fase 0). Se trabaja con Pull Requests usando `gh pr create`.
+- Antes de abrir un PR: `git pull origin main`, resolver conflictos, y que pasen `npm run typecheck` y el build.
+- El backend no toca `dashboard/` y el dashboard no toca `src/`, salvo acuerdo explícito.
+- Al terminar cada fase, detenerse y mostrar un resumen de lo hecho, cómo probarlo y el enlace al PR.
