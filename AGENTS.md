@@ -85,8 +85,11 @@ Roles: `admin` puede todo. `user` solo ve y maneja sus propias URLs y API keys, 
 | `POST /api/auth/login` | `{ email, password }` | `200 { user }` y crea la cookie. `401` si las credenciales son incorrectas |
 | `POST /api/auth/logout` | | `204` |
 | `GET /api/auth/me` | | `200 { user }` o `401` |
+| `PATCH /api/auth/me` | `{ name?, email?, current_password?, new_password? }` | `200 { user }`. Cambiar el correo o la contraseña exige `current_password` correcto (`401` si no). `409` si el correo ya existe |
 
 Objeto `user`: `{ id, name, email, role, created_at, updated_at }` (nunca incluye el hash).
+
+- `PATCH /api/auth/me`: si solo cambia `name`, no hace falta `current_password`. Si `email` es igual al actual (comparado en minúsculas), tampoco cuenta como cambio. `new_password` debe tener entre 8 y 72 caracteres. El cambio de correo no cierra la sesión.
 
 ### Usuarios (solo admin)
 | Método y ruta | Body | Respuesta |
@@ -116,6 +119,15 @@ Objeto `admin_url`: `{ id, code, url, short_url, click_count, created_at, update
 
 Objeto `api_key`: `{ id, name, key_prefix, is_active, last_used_at, created_at, owner: { id, name } }`.
 Formato de la clave: `sk_` + 32 caracteres aleatorios. Se guarda solo su hash SHA-256. `key_prefix` son los primeros 8 caracteres.
+
+### Búsqueda global (Ctrl+K del dashboard)
+| Método y ruta | Respuesta |
+|---|---|
+| `GET /api/admin/search?q=texto&limit=5` | `{ "urls": [admin_url], "users": [user], "api_keys": [api_key] }` |
+
+- `q` es obligatorio (1 a 100 caracteres, sin distinguir mayúsculas) y `limit` va de 1 a 10 (por defecto 5). Cada lista trae como máximo `limit` resultados.
+- Busca en `code` y `url` de las URLs, en `name` y `email` de los usuarios, y en `name` y `key_prefix` de las API keys. Nunca devuelve `password_hash` ni `key_hash`.
+- Un `user` normal solo recibe sus propias URLs y API keys; `users` siempre viene vacío. Un `admin` recibe todo.
 
 ### Estadísticas
 | Método y ruta | Respuesta |
@@ -209,3 +221,5 @@ Detalles que el contrato no fija y que el backend resolvió así (el dashboard p
 - `clicks-per-day` agrupa por día en UTC. `total_users` para un `user` normal es siempre 1.
 - Los correos se guardan y comparan en minúsculas. Las contraseñas deben tener entre 8 y 72 caracteres.
 - Cookie de sesión: se llama `session`.
+- `GET /api/admin/search`: `q` vacío o solo espacios → `400`; `limit` mayor a 10 → `400` (no se recorta). El orden es por fecha de creación descendente.
+- `PATCH /api/auth/me`: si se intenta cambiar el correo o la contraseña sin `current_password` o con una incorrecta → `401 { "error": "La contraseña actual es incorrecta" }`. Un body vacío o sin cambios devuelve `200` con el usuario actual.
