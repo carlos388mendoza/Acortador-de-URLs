@@ -8,6 +8,7 @@ import {
   KeyRound,
   Link2,
   MousePointerClick,
+  Plus,
   Trophy,
   Users,
 } from "lucide-react";
@@ -35,6 +36,7 @@ import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { CreatorCard } from "./creator-card";
 import { PopularUrlCard, RecentUrlCard } from "./stat-url-card";
 import { SummaryCard } from "./summary-card";
+import { PageHeading } from "@/components/layout/page-heading";
 
 type ClickPoint = { date: string; clicks: number };
 
@@ -45,6 +47,10 @@ const chartConfig = {
 export function StatsPage() {
   const [days, setDays] = useState("7");
   const navigate = useNavigate();
+  const createUrl = () => {
+    navigate("/urls");
+    window.setTimeout(() => window.dispatchEvent(new Event("new-url")), 100);
+  };
   const me = useQuery({
     queryKey: ["me"],
     queryFn: () => api<ApiUserResponse>("/api/auth/me"),
@@ -89,6 +95,20 @@ export function StatsPage() {
 
   return (
     <div className="grid min-w-0 gap-6">
+      <PageHeading
+        label="General"
+        title="Inicio"
+        subtitle="Resumen de tus enlaces y su actividad."
+        action={
+          <Button
+            className="h-11 rounded-xl bg-[#1c1917] text-white hover:bg-stone-800"
+            onClick={createUrl}
+          >
+            <Plus />
+            Nueva URL
+          </Button>
+        }
+      />
       <section className="relative isolate flex min-h-56 min-w-0 items-center overflow-hidden rounded-3xl bg-brand px-6 py-8 text-white shadow-[0_14px_32px_rgb(227_6_19/18%)] sm:px-9 lg:px-12">
         <div className="relative z-10 max-w-2xl">
           <p className="text-sm font-semibold text-white/80">
@@ -100,18 +120,6 @@ export function StatsPage() {
           <p className="mt-3 max-w-lg text-sm text-white/80 sm:text-base">
             Administra tus URLs y conoce el alcance de cada enlace.
           </p>
-          <Button
-            className="mt-6 rounded-xl bg-white text-stone-950 hover:bg-white/90"
-            onClick={() => {
-              navigate("/urls");
-              window.setTimeout(
-                () => window.dispatchEvent(new Event("new-url")),
-                100,
-              );
-            }}
-          >
-            <Link2 /> Crear URL
-          </Button>
         </div>
         <div className="absolute right-10 hidden size-48 place-items-center rounded-full bg-white shadow-xl lg:grid">
           <img

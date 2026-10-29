@@ -11,6 +11,7 @@ import {
   ChevronDown,
   House,
   Link2,
+  LogOut,
   Menu,
   Plus,
   Search,
@@ -40,6 +41,7 @@ import { LogoutConfirmDialog } from "./logout-confirm-dialog";
 import { useKeyboardShortcuts } from "./keyboard-shortcuts";
 import { SideNavigation } from "./side-navigation";
 import { ThemeControl } from "./theme-control";
+import { Kbd } from "@/components/ui/kbd";
 
 type OpenLayer = "menu" | "palette" | "account" | "help" | "logout" | null;
 
@@ -141,42 +143,34 @@ export function AppLayout() {
   };
   const sidebarProps = {
     isAdmin: Boolean(isAdmin),
-    isMac,
     onNavigate: () => setOpenLayer(null),
-    onSearch: openPalette,
     onCreateUrl: createUrl,
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[264px] flex-col border-r border-border bg-background px-4 py-5 lg:flex">
-        <Link to="/" className="mb-7 flex items-center gap-3 px-2 font-bold">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[264px] min-h-0 flex-col border-r border-border bg-white px-4 py-5 lg:flex dark:bg-background">
+        <Link
+          to="/"
+          className="mb-4 flex shrink-0 items-center gap-3 px-2 font-bold"
+        >
           <img
             src="/dashboard/logo.png"
             alt=""
             className="size-10 rounded-full object-cover"
           />
-          <span className="font-heading text-lg">Acortador de URLs</span>
-        </Link>
-        <SideNavigation {...sidebarProps} />
-        <div className="mt-5 border-t border-border pt-4">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={openPalette}
-            className="mb-3 h-10 w-full justify-start gap-2 rounded-xl border border-border bg-card text-muted-foreground"
-          >
-            <Search className="size-4" />
-            <span className="flex-1 text-left">Buscar URLs</span>
-            <span className="flex items-center gap-1">
-              <kbd className="rounded-md bg-muted px-1.5 py-0.5 text-[10px]">
-                {isMac ? "⌘" : "Ctrl"}
-              </kbd>
-              <kbd className="rounded-md bg-muted px-1.5 py-0.5 text-[10px]">
-                K
-              </kbd>
+          <span className="min-w-0">
+            <span className="block font-heading text-base leading-tight">
+              Acortador de URLs
             </span>
-          </Button>
+            <span className="mt-1 block truncate text-xs font-normal text-muted-foreground">
+              Grupo Comidas · Sistemas
+            </span>
+          </span>
+        </Link>
+        <div className="mb-4 h-px shrink-0 bg-border" />
+        <SideNavigation {...sidebarProps} />
+        <div className="mt-4 shrink-0 border-t border-border pt-3">
           <DropdownMenu
             open={openLayer === "account" && isDesktop}
             onOpenChange={(open) =>
@@ -202,7 +196,7 @@ export function AppLayout() {
                     {data?.user.name ?? "Cuenta"}
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">
-                    {data?.user.role}
+                    {data?.user.email} · {data?.user.role}
                   </span>
                 </span>
                 <ChevronDown className="size-4 text-muted-foreground" />
@@ -220,6 +214,20 @@ export function AppLayout() {
               />
             </DropdownMenuContent>
           </DropdownMenu>
+          <div className="mt-2 grid gap-2">
+            <p className="px-1 text-xs font-semibold text-muted-foreground">
+              Tema
+            </p>
+            <ThemeControl />
+          </div>
+          <Button
+            variant="outline"
+            className="mt-2 w-full rounded-xl"
+            onClick={requestLogout}
+          >
+            <LogOut className="size-4" />
+            Cerrar sesión
+          </Button>
         </div>
       </aside>
 
@@ -241,15 +249,10 @@ export function AppLayout() {
               alt=""
               className="size-8 rounded-full"
             />
-            <span className="font-heading text-sm font-bold">Acortador</span>
+            <span className="font-heading text-sm font-bold">
+              Acortador de URLs
+            </span>
           </Link>
-          <div className="hidden min-w-0 flex-1 items-center gap-2 lg:flex">
-            <House className="size-4 text-brand" />
-            <h1 className="truncate font-heading text-xl font-bold">{title}</h1>
-          </div>
-          <span className="min-w-0 flex-1 truncate font-heading text-sm font-bold lg:hidden">
-            {title}
-          </span>
           <Button
             type="button"
             variant="outline"
@@ -260,9 +263,16 @@ export function AppLayout() {
             <Search className="size-4" />
             <span className="hidden min-[380px]:inline">Buscar</span>
           </Button>
-          <div className="hidden lg:block">
-            <Button variant="outline" onClick={openPalette}>
-              <Search /> Buscar
+          <div className="hidden flex-1 justify-center lg:flex">
+            <Button
+              variant="outline"
+              onClick={openPalette}
+              className="h-11 w-full max-w-[440px] justify-start rounded-full px-4 text-muted-foreground"
+            >
+              <Search className="size-4" /> Buscar...
+              <span className="ml-auto">
+                <Kbd>{isMac ? "⌘ K" : "Ctrl K"}</Kbd>
+              </span>
             </Button>
           </div>
         </header>
@@ -282,22 +292,60 @@ export function AppLayout() {
       >
         <SheetContent
           side="left"
-          className="w-[min(88vw,320px)] border-r border-border bg-background p-4"
+          className="flex w-[min(88vw,320px)] min-h-0 flex-col border-r border-border bg-background p-4"
           aria-label="Menú lateral"
         >
-          <SheetHeader className="mb-6">
+          <SheetHeader className="mb-4 shrink-0 border-b border-border pb-4">
             <SheetTitle className="flex items-center gap-3 font-heading text-lg">
               <img
                 src="/dashboard/logo.png"
                 alt=""
                 className="size-9 rounded-full"
               />
-              Acortador de URLs
+              <span className="text-left">
+                <span className="block">Acortador de URLs</span>
+                <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                  Grupo Comidas · Sistemas
+                </span>
+              </span>
             </SheetTitle>
           </SheetHeader>
           <SideNavigation {...sidebarProps} />
-          <div className="mt-5 border-t border-border pt-4">
+          <div className="mt-4 shrink-0 border-t border-border pt-3">
+            <div className="mb-2 flex min-w-0 items-center gap-3">
+              <Avatar className="size-10">
+                <AvatarFallback className="bg-stone-900 font-bold text-white dark:bg-black">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-bold">
+                  {data?.user.name}
+                </span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {data?.user.email} · {data?.user.role}
+                </span>
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={goToProfile}
+            >
+              Mi perfil
+            </Button>
+            <p className="mb-2 mt-2 text-xs font-semibold text-muted-foreground">
+              Tema
+            </p>
             <ThemeControl />
+            <Button
+              variant="outline"
+              className="mt-2 w-full rounded-xl"
+              onClick={requestLogout}
+            >
+              <LogOut className="size-4" />
+              Cerrar sesión
+            </Button>
           </div>
         </SheetContent>
       </Sheet>

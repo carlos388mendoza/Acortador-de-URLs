@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserCard } from "./user-card";
 import { UserDialog } from "./user-dialog";
+import { PageHeading } from "@/components/layout/page-heading";
 
 export function UsersPage() {
   const client = useQueryClient();
@@ -25,7 +26,10 @@ export function UsersPage() {
     queryFn: () => api<Page<User>>("/api/admin/users?page=1&limit=100"),
     enabled: me.data?.user.role === "admin",
   });
-  const refresh = () => client.invalidateQueries({ queryKey: ["users"] });
+  const refresh = () => {
+    void client.invalidateQueries({ queryKey: ["users"] });
+    void client.invalidateQueries({ queryKey: ["stats", "summary"] });
+  };
 
   const deleteUser = async () => {
     if (!deleting) return;
@@ -57,19 +61,19 @@ export function UsersPage() {
 
   return (
     <div className="grid min-w-0 gap-6">
-      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-brand">
-            Administración
-          </p>
-          <h2 className="font-heading text-3xl font-bold sm:text-4xl">
-            Usuarios
-          </h2>
-        </div>
-        <Button className="h-11 rounded-xl" onClick={() => setEditing(null)}>
-          <Plus /> Nuevo usuario
-        </Button>
-      </div>
+      <PageHeading
+        label="Administración"
+        title="Usuarios"
+        subtitle="Personas con acceso al dashboard."
+        action={
+          <Button
+            className="h-11 rounded-xl bg-[#1c1917] text-white hover:bg-stone-800"
+            onClick={() => setEditing(null)}
+          >
+            <Plus /> Nuevo usuario
+          </Button>
+        }
+      />
       {users.isPending ? (
         <LoadingCards />
       ) : users.error ? (

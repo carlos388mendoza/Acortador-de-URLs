@@ -14,6 +14,7 @@ import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { QrDialog } from "./qr-dialog";
 import { UrlCard } from "./url-card";
 import { UrlDialog } from "./url-dialog";
+import { PageHeading } from "@/components/layout/page-heading";
 
 export function UrlsPage() {
   const [params, setParams] = useSearchParams();
@@ -37,7 +38,10 @@ export function UrlsPage() {
     return () => window.removeEventListener("new-url", openCreateDialog);
   }, []);
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["urls"] });
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: ["urls"] });
+    void queryClient.invalidateQueries({ queryKey: ["stats", "summary"] });
+  };
   const updateSearch = (value: string) =>
     setParams(value ? { search: value, page: "1" } : {});
 
@@ -55,17 +59,19 @@ export function UrlsPage() {
 
   return (
     <div className="grid min-w-0 gap-5">
-      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-brand">
-            Enlaces
-          </p>
-          <h2 className="font-heading text-3xl font-bold sm:text-4xl">URLs</h2>
-        </div>
-        <Button className="h-11 rounded-xl" onClick={() => setEditing(null)}>
-          <Plus /> Nueva URL
-        </Button>
-      </div>
+      <PageHeading
+        label="Enlaces"
+        title="URLs"
+        subtitle="Todos los enlaces cortos del equipo."
+        action={
+          <Button
+            className="h-11 rounded-xl bg-[#1c1917] text-white hover:bg-stone-800"
+            onClick={() => setEditing(null)}
+          >
+            <Plus /> Nueva URL
+          </Button>
+        }
+      />
 
       <Input
         aria-label="Buscar URLs"

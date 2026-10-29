@@ -1,33 +1,40 @@
-import { Plus, Search } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
+import { api } from "@/api/client";
+import type { Summary } from "@/types";
 import { NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Kbd } from "@/components/ui/kbd";
 import {
   adminNavItems,
   developerNavItems,
   mainNavItems,
-  profileNavItems,
   type NavItem,
 } from "./nav-items";
 
 type SideNavigationProps = {
   isAdmin: boolean;
-  isMac: boolean;
   onNavigate?: () => void;
-  onSearch: () => void;
   onCreateUrl: () => void;
 };
 
 export function SideNavigation({
   isAdmin,
-  isMac,
   onNavigate,
-  onSearch,
   onCreateUrl,
 }: SideNavigationProps) {
+  const summary = useQuery({
+    queryKey: ["stats", "summary"],
+    queryFn: () => api<Summary>("/api/admin/stats/summary"),
+  });
+  const counts: Record<string, number | undefined> = {
+    URLs: summary.data?.total_urls,
+    "API keys": summary.data?.active_api_keys,
+    Usuarios: summary.data?.total_users,
+  };
   const renderItem = ({ to, label, icon: Icon, external }: NavItem) => {
     const classes =
       "flex min-w-0 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted";
+    const count = counts[label];
     if (external) {
       return (
         <a
@@ -40,6 +47,7 @@ export function SideNavigation({
         >
           <Icon className="size-4 shrink-0" />
           <span className="truncate">{label}</span>
+          {count !== undefined && count > 0 && <CountBadge value={count} />}
         </a>
       );
     }
@@ -50,11 +58,12 @@ export function SideNavigation({
         end={to === "/"}
         onClick={onNavigate}
         className={({ isActive }) =>
-          `${classes} ${isActive ? "bg-accent text-accent-foreground hover:bg-accent" : ""}`
+          `${classes} ${isActive ? "bg-accent text-accent-foreground hover:bg-accent [&_svg]:text-accent-foreground" : ""}`
         }
       >
         <Icon className="size-4 shrink-0" />
         <span className="truncate">{label}</span>
+        {count !== undefined && count > 0 && <CountBadge value={count} />}
       </NavLink>
     );
   };
@@ -65,46 +74,40 @@ export function SideNavigation({
       aria-label="Navegación principal"
     >
       <Button
-        className="mb-5 h-11 w-full justify-start rounded-xl"
+        className="mb-5 h-11 w-full shrink-0 justify-start rounded-xl bg-[#1c1917] text-white hover:bg-stone-800"
         onClick={onCreateUrl}
       >
         <Plus className="size-4" />
         Nueva URL
       </Button>
-      <div className="grid gap-1">
-        {mainNavItems.slice(0, 1).map(renderItem)}
-      </div>
-      <Button
-        type="button"
-        variant="ghost"
-        onClick={onSearch}
-        className="mt-1 justify-start gap-3 rounded-xl px-3 text-foreground"
-      >
-        <Search className="size-4" />
-        <span>Buscar</span>
-        <span className="ml-auto flex items-center gap-1 text-muted-foreground">
-          <Kbd>{isMac ? "⌘" : "Ctrl"}</Kbd>
-          <Kbd>K</Kbd>
-        </span>
-      </Button>
-      <div className="grid gap-1">{mainNavItems.slice(1).map(renderItem)}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <p className="mb-2 px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+          General
+        </p>
+        <div className="grid gap-1">{mainNavItems.map(renderItem)}</div>
 
-      <p className="mb-2 mt-7 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        Desarrolladores
-      </p>
-      <div className="grid gap-1">{developerNavItems.map(renderItem)}</div>
+        <p className="mb-2 mt-7 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Desarrolladores
+        </p>
+        <div className="grid gap-1">{developerNavItems.map(renderItem)}</div>
 
-      {isAdmin && (
-        <>
-          <p className="mb-2 mt-7 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Administración
-          </p>
-          <div className="grid gap-1">{adminNavItems.map(renderItem)}</div>
-        </>
-      )}
-      <div className="mt-auto grid gap-1 pt-5">
-        {profileNavItems.map(renderItem)}
+        {isAdmin && (
+          <>
+            <p className="mb-2 mt-7 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Administración
+            </p>
+            <div className="grid gap-1">{adminNavItems.map(renderItem)}</div>
+          </>
+        )}
       </div>
     </nav>
+  );
+}
+
+function CountBadge({ value }: { value: number }) {
+  return (
+    <span className="ml-auto grid size-5 shrink-0 place-items-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+      {value}
+    </span>
   );
 }
