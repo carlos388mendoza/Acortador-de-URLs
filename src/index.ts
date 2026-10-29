@@ -1,5 +1,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { Scalar } from '@scalar/hono-api-reference'
+import { adminUrlsRouter } from './routes/admin-urls'
+import { adminUsersRouter } from './routes/admin-users'
 import { apiKeysRouter } from './routes/api-keys'
 import { authRouter } from './routes/auth'
 import { publicUrlsRouter } from './routes/public-urls'
@@ -24,6 +26,8 @@ api.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
 
 api.route('/urls', publicUrlsRouter)
 api.route('/admin/api-keys', apiKeysRouter)
+api.route('/admin/users', adminUsersRouter)
+api.route('/admin/urls', adminUrlsRouter)
 api.route('/auth', authRouter)
 
 api.doc('/doc', {

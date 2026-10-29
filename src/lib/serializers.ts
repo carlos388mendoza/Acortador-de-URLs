@@ -1,5 +1,5 @@
 import type { schema } from '../db'
-import { toIso } from './utils'
+import { buildShortUrl, toIso } from './utils'
 
 type UserRow = typeof schema.users.$inferSelect
 type ApiKeyRow = typeof schema.apiKeys.$inferSelect
@@ -28,5 +28,21 @@ export function toApiKey(row: ApiKeyRow, owner: { id: number; name: string }) {
     last_used_at: row.lastUsedAt ? toIso(row.lastUsedAt) : null,
     created_at: toIso(row.createdAt),
     owner: { id: owner.id, name: owner.name },
+  }
+}
+
+type UrlRow = typeof schema.urls.$inferSelect
+
+/** Forma admin_url del contrato. `creator` es null si la URL es anónima o su dueño fue borrado. */
+export function toAdminUrl(row: UrlRow, creator: { id: number; name: string } | null, requestUrl: string) {
+  return {
+    id: row.id,
+    code: row.code,
+    url: row.url,
+    short_url: buildShortUrl(requestUrl, row.code),
+    click_count: row.clickCount,
+    created_at: toIso(row.createdAt),
+    updated_at: toIso(row.updatedAt),
+    creator: creator ? { id: creator.id, name: creator.name } : null,
   }
 }
