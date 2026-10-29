@@ -1,5 +1,6 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { Scalar } from '@scalar/hono-api-reference'
+import { adminStatsRouter } from './routes/admin-stats'
 import { adminUrlsRouter } from './routes/admin-urls'
 import { adminUsersRouter } from './routes/admin-users'
 import { apiKeysRouter } from './routes/api-keys'
@@ -28,6 +29,7 @@ api.route('/urls', publicUrlsRouter)
 api.route('/admin/api-keys', apiKeysRouter)
 api.route('/admin/users', adminUsersRouter)
 api.route('/admin/urls', adminUrlsRouter)
+api.route('/admin/stats', adminStatsRouter)
 api.route('/auth', authRouter)
 
 api.doc('/doc', {

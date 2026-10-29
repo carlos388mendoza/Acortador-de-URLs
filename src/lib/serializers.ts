@@ -1,4 +1,4 @@
-import type { schema } from '../db'
+import { schema } from '../db'
 import { buildShortUrl, toIso } from './utils'
 
 type UserRow = typeof schema.users.$inferSelect
@@ -45,4 +45,12 @@ export function toAdminUrl(row: UrlRow, creator: { id: number; name: string } | 
     updated_at: toIso(row.updatedAt),
     creator: creator ? { id: creator.id, name: creator.name } : null,
   }
+}
+
+/** Columnas del dueño para los leftJoin con users. */
+export const creatorColumns = { id: schema.users.id, name: schema.users.name }
+
+/** Con leftJoin, si no hay dueño las columnas llegan como null. */
+export function toCreator(c: { id: number | null; name: string | null } | null) {
+  return c && c.id !== null && c.name !== null ? { id: c.id, name: c.name } : null
 }
