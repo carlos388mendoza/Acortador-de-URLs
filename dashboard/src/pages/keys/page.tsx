@@ -9,6 +9,7 @@ import { LoadingCards } from "@/components/shared/loading-cards";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ApiKeyCard } from "./key-card";
+import { PageHeading } from "@/components/layout/page-heading";
 import {
   CreateKeyDialog,
   RenameKeyDialog,
@@ -31,7 +32,10 @@ export function KeysPage() {
     return () => window.removeEventListener("new-api-key", openCreateDialog);
   }, []);
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["keys"] });
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: ["keys"] });
+    void queryClient.invalidateQueries({ queryKey: ["stats", "summary"] });
+  };
 
   const toggleKey = async (apiKey: ApiKey, isActive: boolean) => {
     try {
@@ -56,19 +60,19 @@ export function KeysPage() {
 
   return (
     <div className="grid min-w-0 gap-6">
-      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-brand">
-            Desarrolladores
-          </p>
-          <h2 className="font-heading text-3xl font-bold sm:text-4xl">
-            API keys
-          </h2>
-        </div>
-        <Button className="h-11 rounded-xl" onClick={() => setCreating(true)}>
-          <Plus /> Nueva API key
-        </Button>
-      </div>
+      <PageHeading
+        label="Desarrolladores"
+        title="API keys"
+        subtitle="Claves para usar la API desde otros sistemas."
+        action={
+          <Button
+            className="h-11 rounded-xl bg-[#1c1917] text-white hover:bg-stone-800"
+            onClick={() => setCreating(true)}
+          >
+            <Plus /> Nueva API key
+          </Button>
+        }
+      />
 
       {keys.isPending ? (
         <LoadingCards />

@@ -5,6 +5,7 @@ import { errorMessage } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileForm } from "./profile-form";
+import { PageHeading } from "@/components/layout/page-heading";
 
 export function ProfilePage() {
   const profile = useQuery({
@@ -36,14 +37,11 @@ export function ProfilePage() {
 
   return (
     <div className="grid min-w-0 gap-6">
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-wide text-brand">
-          Cuenta
-        </p>
-        <h2 className="font-heading text-3xl font-bold sm:text-4xl">
-          Mi perfil
-        </h2>
-      </div>
+      <PageHeading
+        label="Cuenta"
+        title="Mi perfil"
+        subtitle="Tus datos de acceso."
+      />
       <ProfileForm key={profile.data.user.id} user={profile.data.user} />
     </div>
   );

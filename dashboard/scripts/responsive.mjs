@@ -69,6 +69,13 @@ try {
         waitUntil: "domcontentloaded",
       });
       await page.waitForTimeout(150);
+      if (width < 1024 && route.name !== "login") {
+        const mobileBrand = await page.locator("header").innerText();
+        if (!mobileBrand.includes("Acortador de URLs"))
+          throw new Error(
+            `La barra superior no conserva la marca a ${width}px`,
+          );
+      }
       const readiness = {
         inicio: page.getByText("Acorta, comparte y mide tus enlaces"),
         login: page.locator("#login-email"),
@@ -145,7 +152,7 @@ try {
           .count()) !== 1
       )
         throw new Error(`Más de una capa abierta en el menú a ${width}px`);
-      await sideSheet.getByRole("button", { name: /Buscar/ }).click();
+      await page.keyboard.press("Control+k");
       await page
         .getByPlaceholder("Busca URLs, usuarios, keys o acciones...")
         .waitFor({ state: "visible" });
@@ -196,10 +203,7 @@ try {
         throw new Error(`La paleta no cerró Cuenta a ${width}px`);
       await page.keyboard.press("Escape");
     } else {
-      await page
-        .locator("aside")
-        .getByRole("button", { name: "Buscar Ctrl K" })
-        .click();
+      await page.getByRole("button", { name: /Buscar\.\.\./ }).click();
       await page
         .getByPlaceholder("Busca URLs, usuarios, keys o acciones...")
         .waitFor({ state: "visible" });
@@ -242,6 +246,52 @@ try {
       throw new Error(`Desbordamiento con capas abiertas a ${width}px`);
     console.log(`✓ capas mutuamente excluyentes: ${width}px`);
   }
+
+  await page.setViewportSize({ width: 1440, height: 600 });
+  await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  const sidebarList = page
+    .locator('nav[aria-label="Navegación principal"] > div')
+    .last();
+  await sidebarList.waitFor({ state: "visible" });
+  const scrollState = await sidebarList.evaluate((element) => ({
+    client: element.clientHeight,
+    total: element.scrollHeight,
+  }));
+  if (scrollState.total <= scrollState.client)
+    throw new Error(
+      "La lista lateral no puede desplazarse en una ventana de 600px",
+    );
+  await sidebarList.hover();
+  await page.mouse.wheel(0, 500);
+  await page.waitForTimeout(100);
+  if ((await sidebarList.evaluate((element) => element.scrollTop)) <= 0)
+    throw new Error(
+      "La rueda no desplaza la lista lateral en una ventana baja",
+    );
+  console.log("✓ barra lateral desplazable a 600px de alto");
+  await page.setViewportSize({ width: 375, height: 600 });
+  await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Abrir menú lateral" }).click();
+  const mobileSidebarList = page
+    .locator(
+      '[data-slot="sheet-content"][data-side="left"] nav[aria-label="Navegación principal"] > div',
+    )
+    .last();
+  const mobileScrollState = await mobileSidebarList.evaluate((element) => ({
+    client: element.clientHeight,
+    total: element.scrollHeight,
+  }));
+  if (mobileScrollState.total <= mobileScrollState.client)
+    throw new Error(
+      "La lista lateral móvil no puede desplazarse a 600px de alto",
+    );
+  await mobileSidebarList.hover();
+  await page.mouse.wheel(0, 500);
+  await page.waitForTimeout(100);
+  if ((await mobileSidebarList.evaluate((element) => element.scrollTop)) <= 0)
+    throw new Error("La rueda no desplaza la lista lateral móvil");
+  await page.keyboard.press("Escape");
+  console.log("✓ menú lateral móvil desplazable a 600px de alto");
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(baseUrl, { waitUntil: "domcontentloaded" });

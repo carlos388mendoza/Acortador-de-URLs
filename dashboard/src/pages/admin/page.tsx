@@ -6,6 +6,7 @@ import type { ApiUserResponse, Summary } from "@/types";
 import { LoadingCards } from "@/components/shared/loading-cards";
 import { Card, CardContent } from "@/components/ui/card";
 import { UsersPage } from "@/pages/users/page";
+import { PageHeading } from "@/components/layout/page-heading";
 
 export function AdminPage() {
   const [params, setParams] = useSearchParams();
@@ -25,14 +26,11 @@ export function AdminPage() {
 
   return (
     <div className="grid min-w-0 gap-6">
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-wide text-brand">
-          Equipo
-        </p>
-        <h2 className="font-heading text-3xl font-bold sm:text-4xl">
-          Administración
-        </h2>
-      </div>
+      <PageHeading
+        label="Equipo"
+        title="Administración"
+        subtitle="Control general de la aplicación."
+      />
       <div
         className="flex gap-6 border-b border-border"
         role="tablist"
