@@ -45,6 +45,6 @@ export async function mockRequest(path: string, init: RequestInit = {}): Promise
     const days = Number(url.searchParams.get('days') || 30)
     return { data: Array.from({ length: days }, (_, i) => { const date = new Date(); date.setUTCDate(date.getUTCDate() - (days - i - 1)); return { date: date.toISOString().slice(0, 10), clicks: [0, 3, 8, 4, 10, 14, 6][i % 7] } }) }
   }
-  if (url.pathname === '/api/admin/search') return { urls: mockUrls, users: [], keys: mockKeys }
+  if (url.pathname === '/api/admin/search') { const q = (url.searchParams.get('q') || '').toLowerCase(); return { urls: mockUrls.filter((item) => `${item.code} ${item.url}`.toLowerCase().includes(q)), users: [mockUser].filter((item) => `${item.name} ${item.email}`.toLowerCase().includes(q)), api_keys: mockKeys.filter((item) => `${item.name} ${item.key_prefix}`.toLowerCase().includes(q)) } }
   return { data: [] }
 }
