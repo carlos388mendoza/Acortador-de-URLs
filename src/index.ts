@@ -4,7 +4,7 @@ import { Scalar } from '@scalar/hono-api-reference'
 import 'hono'
 import { FAVICON_ICO, LOGO_PNG } from './lib/branding'
 import { securityHeaders } from './middleware/security'
-import { readFileSync } from 'node:fs'
+import { SKILL_CONTENT } from './lib/skill-content'
 import { adminSearchRouter } from './routes/admin-search'
 import { adminStatsRouter } from './routes/admin-stats'
 import { adminUrlsRouter } from './routes/admin-urls'
@@ -43,17 +43,7 @@ api.route('/admin/stats', adminStatsRouter)
 api.route('/auth', authRouter)
 
 api.get('/skill', (c) => {
-  let content = ''
-  try {
-    content = readFileSync('skills/acortador-urls/SKILL.md', 'utf8')
-  } catch {
-    try {
-      content = readFileSync('/var/task/skills/acortador-urls/SKILL.md', 'utf8')
-    } catch {
-      return c.text('SKILL no disponible', 500)
-    }
-  }
-  return c.text(content, 200, { 'Content-Type': 'text/markdown; charset=utf-8' })
+  return c.text(SKILL_CONTENT, 200, { 'Content-Type': 'text/markdown; charset=utf-8' })
 })
 
 api.doc('/doc', {
