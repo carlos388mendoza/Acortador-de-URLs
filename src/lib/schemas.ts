@@ -18,6 +18,18 @@ export const errorResponse = (description: string) => ({
   description,
 })
 
+export const ApiKeySchema = z
+  .object({
+    id: z.number().int(),
+    name: z.string(),
+    key_prefix: z.string().openapi({ example: 'sk_aB3dE' }),
+    is_active: z.boolean(),
+    last_used_at: z.string().nullable(),
+    created_at: z.string(),
+    owner: z.object({ id: z.number().int(), name: z.string() }),
+  })
+  .openapi('ApiKey')
+
 export const AdminUrlSchema = z
   .object({
     id: z.number().int(),
