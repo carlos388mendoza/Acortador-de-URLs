@@ -31,18 +31,18 @@ const DEMO_USERS = [
 ]
 
 const DEMO_URLS = [
-  ['docs', 'https://developer.mozilla.org/es/docs/Web'],
-  ['blog', 'https://example.com/blog/como-acortar-urls'],
-  ['promo', 'https://example.com/promociones/verano'],
-  ['curso', 'https://example.com/cursos/typescript'],
-  ['repo', 'https://github.com/honojs/hono'],
-  ['video', 'https://example.com/videos/presentacion'],
-  ['menu', 'https://example.com/restaurante/menu'],
-  ['form', 'https://example.com/formulario/contacto'],
-  ['noticia', 'https://example.com/noticias/lanzamiento'],
-  ['tienda', 'https://example.com/tienda/ofertas'],
-  ['cv', 'https://example.com/portafolio/cv'],
-  ['mapa', 'https://example.com/ubicacion/mapa'],
+  ['blog', 'https://hono.dev'],
+  ['curso', 'https://zod.dev'],
+  ['cv', 'https://neon.com'],
+  ['docs', 'https://vercel.com'],
+  ['form', 'https://scalar.com'],
+  ['mapa', 'https://github.com'],
+  ['menu', 'https://www.wikipedia.org'],
+  ['noticia', 'https://www.youtube.com'],
+  ['promo', 'https://www.google.com/maps'],
+  ['repo', 'https://developer.mozilla.org'],
+  ['tienda', 'https://www.openapis.org'],
+  ['video', 'https://dub.co'],
 ] as const
 
 const pick = <T>(items: readonly T[]): T => items[Math.floor(Math.random() * items.length)] as T
