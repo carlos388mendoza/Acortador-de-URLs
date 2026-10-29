@@ -7,6 +7,7 @@
     "dev": "tsx watch --env-file=.env src/dev.ts",
     "typecheck": "tsc --noEmit",
     "build": "node scripts/build.mjs",
+    "branding": "node scripts/branding.mjs",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "seed:admin": "tsx --env-file=.env scripts/seed-admin.ts",
@@ -29,6 +30,8 @@
     "dotenv": "^18.0.9",
     "drizzle-kit": "^0.31.11",
     "pg": "^8.23.1",
+    "png-to-ico": "^3.0.2",
+    "sharp": "^0.35.5",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   }

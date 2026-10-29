@@ -144,6 +144,24 @@ Para un `user` normal, las estadísticas se calculan solo con sus propias URLs.
 - `JWT_SECRET`: cadena aleatoria larga
 - `ADMIN_EMAIL`, `ADMIN_PASSWORD`: solo para el script que crea el primer admin
 
+## Branding
+
+La carpeta `branding/` es la fuente de verdad de la imagen del proyecto:
+
+| Archivo | Uso |
+|---|---|
+| `logo-original.png` | Original del que se generan los demás (puede ser `.png`, `.jpg`, `.webp` o `.svg`) |
+| `logo.png` | Logo 512x512 con fondo transparente |
+| `logo-192.png` | Logo 192x192 (PWA y QR) |
+| `apple-touch-icon.png` | 180x180 para iOS |
+| `favicon-32.png`, `favicon-16.png` | Favicons PNG |
+| `favicon.ico` | Icono multi-resolución (16, 32 y 48) |
+| `logo.svg` | Solo si el original es SVG |
+
+- `npm run branding` regenera todo a partir de `branding/logo-original.*` (usa `sharp` y `png-to-ico`, dependencias de desarrollo) y también `src/lib/branding-assets.ts`, que embebe el favicon y el logo para que el backend los sirva en Vercel.
+- El backend sirve `GET /favicon.ico` y `GET /branding/logo.png`. `/api/reference` (Scalar) usa el favicon y muestra el logo en la barra lateral.
+- El dashboard debe copiar los archivos de `branding/` a `dashboard/public/` para sus propios iconos y para el logo de los códigos QR.
+
 ## Dashboard
 
 - Vive en `dashboard/` con su propio `package.json`.
