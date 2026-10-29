@@ -1,18 +1,9 @@
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 
 type LogoutConfirmDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void>;
 };
 
 export function LogoutConfirmDialog({
@@ -20,25 +11,15 @@ export function LogoutConfirmDialog({
   onOpenChange,
   onConfirm,
 }: LogoutConfirmDialogProps) {
+  if (!open) return null;
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
-          <AlertDialogDescription>
-            ¿Quieres salir de tu cuenta?
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
-            className="bg-destructive text-white hover:bg-destructive/85"
-            onClick={onConfirm}
-          >
-            Cerrar sesión
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDeleteDialog
+      title="¿Cerrar sesión?"
+      description="Vas a salir de tu cuenta."
+      actionLabel="Cerrar sesión"
+      icon="logout"
+      onConfirm={onConfirm}
+      onClose={() => onOpenChange(false)}
+    />
   );
 }

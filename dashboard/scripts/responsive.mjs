@@ -13,6 +13,7 @@ const routes = [
   { name: "usuarios", path: "users" },
   { name: "administracion", path: "admin" },
   { name: "perfil", path: "profile" },
+  { name: "skill", path: "skill" },
 ];
 
 let server;
@@ -84,6 +85,9 @@ try {
         usuarios: page.getByText("Administradores", { exact: true }),
         administracion: page.getByRole("tab", { name: "Resumen" }),
         perfil: page.getByText("Datos de tu cuenta"),
+        skill: page
+          .getByRole("heading", { name: "SKILL para agentes" })
+          .first(),
       };
       await readiness[route.name].waitFor({ state: "visible" });
       if ((await page.locator("#root").innerText()) === "")
@@ -138,7 +142,27 @@ try {
     if (width < 1024) {
       if (width === 320) {
         await page.getByRole("button", { name: "Nueva URL" }).click();
-        await page.getByRole("dialog").getByText("Crear URL").waitFor();
+        await page
+          .getByRole("dialog")
+          .getByRole("heading", { name: "Crear URL" })
+          .waitFor();
+        await page.getByLabel("URL original").fill("https://ejemplo.com/qa");
+        await page
+          .getByRole("dialog")
+          .getByRole("button", { name: "Crear URL" })
+          .click();
+        await page
+          .getByRole("heading", { name: "Tu URL está lista" })
+          .waitFor();
+        for (const label of ["Copiar", "Abrir", "Personalizar QR", "Listo"])
+          await page
+            .getByRole("dialog")
+            .getByRole("button", { name: label })
+            .waitFor();
+        await page.getByRole("button", { name: "Personalizar QR" }).click();
+        await page
+          .getByRole("heading", { name: "Personalizar código QR" })
+          .waitFor();
         await page.keyboard.press("Escape");
       }
       await page.getByRole("button", { name: "Abrir menú lateral" }).click();
@@ -300,6 +324,38 @@ try {
   await page
     .getByPlaceholder("Busca URLs, usuarios, keys o acciones...")
     .waitFor();
+  const paletteItems = page.locator('[data-slot="command-item"]:visible');
+  await paletteItems.first().waitFor();
+  const paletteColors = await paletteItems.evaluateAll((items) => {
+    const selected = items.filter(
+      (item) => item.getAttribute("data-selected") === "true",
+    );
+    return {
+      selectedCount: selected.length,
+      unselected: items
+        .filter((item) => !selected.includes(item))
+        .map((item) => {
+          const style = getComputedStyle(item);
+          return { background: style.backgroundColor, color: style.color };
+        }),
+    };
+  });
+  if (
+    paletteColors.selectedCount > 1 ||
+    paletteColors.unselected.some(
+      (item) => item.background !== "rgba(0, 0, 0, 0)",
+    )
+  )
+    throw new Error("La paleta debe resaltar solo el elemento seleccionado");
+  await paletteItems.nth(2).hover();
+  await page.waitForTimeout(50);
+  if (
+    (await page
+      .locator('[data-slot="command-item"][data-selected="true"]')
+      .count()) > 1
+  )
+    throw new Error("La paleta resaltó más de un elemento al pasar el cursor");
+  console.log("✓ la paleta solo resalta el elemento seleccionado");
   await page
     .getByPlaceholder("Busca URLs, usuarios, keys o acciones...")
     .fill("curso26");
@@ -308,6 +364,51 @@ try {
   await page
     .getByPlaceholder("Busca URLs, usuarios, keys o acciones...")
     .waitFor({ state: "hidden" });
+  await page.goto(new URL("urls", baseUrl).toString(), {
+    waitUntil: "domcontentloaded",
+  });
+  await page.getByRole("button", { name: "Borrar URL" }).first().click();
+  await page
+    .getByRole("alertdialog")
+    .getByText("¿Eliminar esta URL?")
+    .waitFor();
+  await page
+    .getByRole("alertdialog")
+    .getByText("Esta acción no se puede deshacer.")
+    .waitFor();
+  await page.getByRole("button", { name: "Cancelar" }).click();
+
+  await page.goto(new URL("api-keys", baseUrl).toString(), {
+    waitUntil: "domcontentloaded",
+  });
+  await page.getByRole("button", { name: "Desactivar API key" }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Desactivar" })
+    .waitFor();
+  await page.getByRole("alertdialog").getByText("sk_12ab").waitFor();
+  await page.getByRole("button", { name: "Cancelar" }).click();
+
+  await page.goto(new URL("users", baseUrl).toString(), {
+    waitUntil: "domcontentloaded",
+  });
+  const ownUser = page
+    .locator('[data-slot="card"]')
+    .filter({ hasText: "maria@example.com" });
+  await ownUser.getByText("Tú", { exact: true }).waitFor();
+  if (
+    !(await ownUser
+      .getByRole("button", { name: "Eliminar usuario María López" })
+      .isDisabled())
+  )
+    throw new Error("No se desactivó el botón para borrar la cuenta actual");
+  await page
+    .getByRole("button", { name: "Eliminar usuario Carlos Mendoza" })
+    .click();
+  await page.getByRole("alertdialog").getByText("carlos@example.com").waitFor();
+  await page.getByRole("button", { name: "Cancelar" }).click();
+  console.log("✓ confirmaciones de URL, API key, usuario y cuenta actual");
+
   await page.goto(new URL("urls", baseUrl).toString(), {
     waitUntil: "domcontentloaded",
   });
@@ -328,7 +429,10 @@ try {
   await page.keyboard.press("Escape");
   await page.getByRole("textbox", { name: "Buscar URLs" }).blur();
   await page.keyboard.press("n");
-  await page.getByRole("dialog").getByText("Crear URL").waitFor();
+  await page
+    .getByRole("dialog")
+    .getByRole("heading", { name: "Crear URL" })
+    .waitFor();
   await page.keyboard.press("Escape");
   for (const [key, route] of [
     ["h", ""],

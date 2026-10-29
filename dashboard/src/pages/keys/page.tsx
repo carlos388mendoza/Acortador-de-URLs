@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { KeyRound, Plus } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ApiKeyCard } from "./key-card";
 import { PageHeading } from "@/components/layout/page-heading";
+import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import {
   CreateKeyDialog,
   RenameKeyDialog,
@@ -21,6 +23,7 @@ export function KeysPage() {
   const [creating, setCreating] = useState(false);
   const [secret, setSecret] = useState("");
   const [renaming, setRenaming] = useState<ApiKey | null>(null);
+  const [deactivating, setDeactivating] = useState<ApiKey | null>(null);
   const keys = useQuery({
     queryKey: ["keys"],
     queryFn: () => api<{ data: ApiKey[] }>("/api/admin/api-keys"),
@@ -46,7 +49,13 @@ export function KeysPage() {
       await refresh();
     } catch (error) {
       toast.error(errorMessage(error));
+      throw error;
     }
+  };
+
+  const requestKeyToggle = (apiKey: ApiKey, isActive: boolean) => {
+    if (isActive) void toggleKey(apiKey, true);
+    else setDeactivating(apiKey);
   };
 
   const showNewSecret = (key: string) => {
@@ -74,6 +83,35 @@ export function KeysPage() {
         }
       />
 
+      <Card className="rounded-2xl">
+        <CardContent className="grid gap-4 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-6">
+          <div className="min-w-0">
+            <h2 className="font-heading text-lg font-bold">
+              ¿Cómo uso mi API key?
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Inclúyela como Bearer token al crear enlaces.
+            </p>
+            <pre className="mt-3 overflow-x-auto rounded-xl bg-stone-950 p-3 text-xs leading-5 text-stone-100">{`curl -X POST https://acortador-de-urls-iota.vercel.app/api/urls/new \\\n  -H 'Authorization: Bearer sk_TU_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{"url":"https://ejemplo.com"}'`}</pre>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild>
+              <a
+                href="/api/reference"
+                target="_blank"
+                rel="noreferrer"
+                title="Documentación interactiva para probar la API"
+              >
+                Documentación API
+              </a>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/skill">SKILL para agentes</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {keys.isPending ? (
         <LoadingCards />
       ) : keys.error ? (
@@ -100,13 +138,13 @@ export function KeysPage() {
             active
             items={activeKeys}
             onRename={setRenaming}
-            onToggle={toggleKey}
+            onToggle={requestKeyToggle}
           />
           <KeySection
             title="Inactivas"
             items={inactiveKeys}
             onRename={setRenaming}
-            onToggle={toggleKey}
+            onToggle={requestKeyToggle}
           />
         </div>
       )}
@@ -126,6 +164,16 @@ export function KeysPage() {
           apiKey={renaming}
           onClose={() => setRenaming(null)}
           onSaved={() => void refresh()}
+        />
+      )}
+      {deactivating && (
+        <ConfirmDeleteDialog
+          title={`¿Desactivar “${deactivating.name}”?`}
+          description={`API key ${deactivating.key_prefix}`}
+          actionLabel="Desactivar"
+          icon="deactivate"
+          onClose={() => setDeactivating(null)}
+          onConfirm={() => toggleKey(deactivating, false)}
         />
       )}
     </div>

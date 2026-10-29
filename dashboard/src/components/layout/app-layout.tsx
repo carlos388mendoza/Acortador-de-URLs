@@ -10,10 +10,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronDown,
   House,
-  Link2,
   LogOut,
   Menu,
   Plus,
+  QrCode,
   Search,
   UserRound,
 } from "lucide-react";
@@ -67,6 +67,7 @@ export function AppLayout() {
     "/users": "Usuarios",
     "/admin": "Administración",
     "/profile": "Mi perfil",
+    "/skill": "SKILL",
   };
   const title = titleByPath[location.pathname] ?? "No encontrado";
   const initials =
@@ -102,6 +103,12 @@ export function AppLayout() {
   }, [title]);
 
   useEffect(() => {
+    const onRequestLogout = () => requestLogout();
+    window.addEventListener("request-logout", onRequestLogout);
+    return () => window.removeEventListener("request-logout", onRequestLogout);
+  }, [requestLogout]);
+
+  useEffect(() => {
     const desktopQuery = window.matchMedia("(min-width: 1024px)");
     const updateLayout = (event: MediaQueryListEvent) =>
       setIsDesktop(event.matches);
@@ -134,6 +141,7 @@ export function AppLayout() {
       toast.error(
         error instanceof Error ? error.message : "No se pudo cerrar sesión",
       );
+      throw error;
     }
   };
 
@@ -205,7 +213,7 @@ export function AppLayout() {
             <DropdownMenuContent
               align="start"
               side="top"
-              className="w-80 rounded-2xl p-0"
+              className="w-[300px] rounded-2xl p-0"
             >
               <AccountPanel
                 user={data?.user}
@@ -292,7 +300,7 @@ export function AppLayout() {
       >
         <SheetContent
           side="left"
-          className="flex w-[min(88vw,320px)] min-h-0 flex-col border-r border-border bg-background p-4"
+          className="flex w-[min(88vw,320px)] min-h-0 flex-col border-r border-border bg-white p-4 dark:bg-background"
           aria-label="Menú lateral"
         >
           <SheetHeader className="mb-4 shrink-0 border-b border-border pb-4">
@@ -360,13 +368,16 @@ export function AppLayout() {
       >
         <SheetContent
           side="bottom"
-          className="max-h-[85dvh] rounded-t-3xl p-0 pb-[env(safe-area-inset-bottom)] lg:hidden"
+          className="!left-1/2 !right-auto !w-[min(calc(100vw-1rem),420px)] !-translate-x-1/2 max-h-[85dvh] !rounded-t-3xl p-0 pb-[env(safe-area-inset-bottom)] lg:hidden"
           aria-label="Cuenta"
         >
           <SheetHeader className="sr-only">
             <SheetTitle>Cuenta</SheetTitle>
           </SheetHeader>
-          <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-muted-foreground/30" />
+          <div
+            className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-muted-foreground/30"
+            aria-hidden="true"
+          />
           <AccountPanel
             user={data?.user}
             onProfile={goToProfile}
@@ -398,7 +409,7 @@ export function AppLayout() {
           <Plus className="size-6 self-end" />
           <span className="text-[10px] font-semibold leading-none">Nuevo</span>
         </button>
-        <MobileNavItem to="/urls" label="URLs" icon={Link2} />
+        <MobileNavItem to="/urls" label="URLs" icon={QrCode} />
         <button
           type="button"
           onClick={() => setOpenLayer("account")}
@@ -427,7 +438,7 @@ export function AppLayout() {
       <LogoutConfirmDialog
         open={openLayer === "logout"}
         onOpenChange={(open) => setOpenLayer(open ? "logout" : null)}
-        onConfirm={() => void logout()}
+        onConfirm={logout}
       />
       <KeyboardShortcutsDialog
         open={openLayer === "help"}

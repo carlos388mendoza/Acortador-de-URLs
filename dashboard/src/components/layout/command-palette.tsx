@@ -3,7 +3,7 @@ import {
   BookOpen,
   House,
   KeyRound,
-  Link2,
+  QrCode,
   LogOut,
   Moon,
   Plus,
@@ -102,21 +102,24 @@ export function CommandPalette({
       className="top-2 h-[calc(100dvh-1rem)] max-w-[calc(100%-1rem)] translate-y-0 rounded-2xl p-2 sm:top-1/2 sm:h-auto sm:max-h-[min(82vh,720px)] sm:max-w-2xl sm:-translate-y-1/2"
     >
       <Command shouldFilter>
-        <div className="flex items-center gap-2 border-b px-3 py-3">
-          <Search className="size-5 shrink-0 text-muted-foreground" />
-          <CommandInput
-            placeholder="Busca URLs, usuarios, keys o acciones..."
-            value={search}
-            onValueChange={setSearch}
-            className="h-10 text-base"
-          />
-          <Kbd className="shrink-0">Esc</Kbd>
+        <div className="px-3 pb-2 pt-3">
+          <div className="flex items-center gap-2 rounded-xl bg-muted px-3">
+            <Search className="size-5 shrink-0 text-muted-foreground" />
+            <CommandInput
+              placeholder="Busca URLs, usuarios, keys o acciones..."
+              value={search}
+              onValueChange={setSearch}
+              className="h-11 border-0 text-base shadow-none focus-visible:ring-0"
+            />
+            <Kbd className="shrink-0">Esc</Kbd>
+          </div>
+          <div className="mt-3 h-px bg-border" />
         </div>
         <CommandList className="max-h-none flex-1 px-1 pb-2 sm:max-h-[min(60vh,560px)]">
           <CommandEmpty>No encontramos coincidencias.</CommandEmpty>
           <CommandGroup heading="Acciones">
             <CommandItem value="Nueva URL crear enlace" onSelect={onCreateUrl}>
-              <Plus className="text-brand" />
+              <Plus />
               <span>Nueva URL</span>
               <span className="ml-auto text-xs text-muted-foreground">
                 Acción
@@ -126,7 +129,7 @@ export function CommandPalette({
               value="Nueva API key crear llave"
               onSelect={onCreateKey}
             >
-              <KeyRound className="text-brand" />
+              <KeyRound />
               <span>Nueva API key</span>
               <span className="ml-auto text-xs text-muted-foreground">
                 Acción
@@ -138,7 +141,7 @@ export function CommandPalette({
                 value={`Tema ${label}`}
                 onSelect={() => setTheme(value)}
               >
-                <Icon className="text-brand" />
+                <Icon />
                 <span className="flex flex-col">
                   <span>Tema: {label}</span>
                   {theme === value && (
@@ -149,11 +152,7 @@ export function CommandPalette({
                 </span>
               </CommandItem>
             ))}
-            <CommandItem
-              value="Cerrar sesión salir"
-              onSelect={onRequestLogout}
-              className="text-destructive data-selected:text-destructive"
-            >
+            <CommandItem value="Cerrar sesión salir" onSelect={onRequestLogout}>
               <LogOut />
               <span>Cerrar sesión</span>
               <span className="ml-auto text-xs text-muted-foreground">
@@ -170,7 +169,7 @@ export function CommandPalette({
               onSelect={() => navigate("/")}
             />
             <PaletteLink
-              icon={Link2}
+              icon={QrCode}
               label="URLs"
               subtitle="Página"
               onSelect={() => navigate("/urls")}
@@ -207,13 +206,14 @@ export function CommandPalette({
               icon={BookOpen}
               label="Documentación API"
               subtitle="Desarrolladores"
+              title="Documentación interactiva para probar la API"
               onSelect={() => openExternal("/api/reference")}
             />
             <PaletteLink
               icon={Sparkles}
               label="SKILL"
               subtitle="Desarrolladores"
-              onSelect={() => openExternal("/api/skill")}
+              onSelect={() => navigate("/skill")}
             />
           </CommandGroup>
 
@@ -228,7 +228,7 @@ export function CommandPalette({
                       navigate("/urls?search=" + encodeURIComponent(url.code))
                     }
                   >
-                    <Link2 />
+                    <QrCode />
                     <span className="min-w-0 truncate">
                       {url.code} · {url.url}
                     </span>
@@ -289,15 +289,21 @@ function PaletteLink({
   icon: Icon,
   label,
   subtitle,
+  title,
   onSelect,
 }: {
   icon: typeof House;
   label: string;
   subtitle: string;
+  title?: string;
   onSelect: () => void;
 }) {
   return (
-    <CommandItem value={`${label} ${subtitle}`} onSelect={onSelect}>
+    <CommandItem
+      value={`${label} ${subtitle}`}
+      onSelect={onSelect}
+      title={title}
+    >
       <Icon />
       <span>{label}</span>
       <span className="ml-auto text-xs text-muted-foreground">{subtitle}</span>

@@ -15,10 +15,12 @@ export function UserCard({
   user,
   onEdit,
   onDelete,
+  isCurrent = false,
 }: {
   user: User;
   onEdit: (user: User) => void;
   onDelete: (user: User) => void;
+  isCurrent?: boolean;
 }) {
   const initials = user.name
     .split(/\s+/)
@@ -39,6 +41,9 @@ export function UserCard({
         </div>
         <div className="min-w-0 flex-1">
           <CardTitle className="truncate text-base">{user.name}</CardTitle>
+          {isCurrent && (
+            <Badge className="mt-1 bg-muted text-muted-foreground">Tú</Badge>
+          )}
         </div>
         <Badge
           className={
@@ -70,6 +75,7 @@ export function UserCard({
           variant="ghost"
           className="text-destructive hover:text-destructive"
           aria-label={`Eliminar usuario ${user.name}`}
+          disabled={isCurrent}
           onClick={() => onDelete(user)}
         >
           <Trash2 /> Eliminar

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { apiPatch, apiPost } from "@/api/client";
 import type { User } from "@/types";
@@ -35,9 +36,13 @@ export function UserDialog({
   const [email, setEmail] = useState(user?.email ?? "");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"admin" | "user">(user?.role ?? "user");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const saveUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setSaving(true);
+    setError("");
     const body = {
       name,
       email,
@@ -52,7 +57,11 @@ export function UserDialog({
       onSaved();
       onClose();
     } catch (error) {
-      toast.error(errorMessage(error));
+      const message = errorMessage(error);
+      setError(message);
+      toast.error(message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -60,21 +69,31 @@ export function UserDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{user ? "Editar usuario" : "Crear usuario"}</DialogTitle>
-          <DialogDescription>
-            Completa los datos de la cuenta.
-          </DialogDescription>
+          <div className="flex items-start gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-brand">
+              <UserRound className="size-5" />
+            </span>
+            <div>
+              <DialogTitle className="text-xl font-bold">
+                {user ? "Editar usuario" : "Crear usuario"}
+              </DialogTitle>
+              <DialogDescription className="mt-1">
+                Completa los datos de la cuenta.
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
         <form className="grid gap-3" onSubmit={saveUser}>
-          <Label>
+          <Label className="grid gap-2">
             Nombre
             <Input
               value={name}
               onChange={(event) => setName(event.target.value)}
               required
+              minLength={user ? undefined : 8}
             />
           </Label>
-          <Label>
+          <Label className="grid gap-2">
             Correo
             <Input
               value={email}
@@ -83,7 +102,7 @@ export function UserDialog({
               required
             />
           </Label>
-          <Label>
+          <Label className="grid gap-2">
             Contraseña
             <Input
               value={password}
@@ -92,7 +111,7 @@ export function UserDialog({
               required={!user}
             />
           </Label>
-          <Label>
+          <Label className="grid gap-2">
             Rol
             <Select
               value={role}
@@ -107,11 +126,22 @@ export function UserDialog({
               </SelectContent>
             </Select>
           </Label>
+          {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit">Guardar</Button>
+            <Button
+              type="submit"
+              disabled={saving}
+              className="bg-[#1c1917] text-white hover:bg-stone-800"
+            >
+              {saving
+                ? "Guardando…"
+                : user
+                  ? "Guardar cambios"
+                  : "Crear usuario"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

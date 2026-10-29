@@ -42,6 +42,11 @@ export function SideNavigation({
           href={to}
           target="_blank"
           rel="noreferrer"
+          title={
+            to === "/api/reference"
+              ? "Documentación interactiva para probar la API"
+              : undefined
+          }
           onClick={onNavigate}
           className={classes}
         >
