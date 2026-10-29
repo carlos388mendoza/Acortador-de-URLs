@@ -2,13 +2,14 @@ import { waitUntil } from '@vercel/functions'
 import { and, eq, isNull, sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { getDb, schema } from '../db'
+import { shortLinkNotFound } from '../lib/not-found-page'
 import { isReservedCode } from '../lib/utils'
 
 export const redirectRouter = new Hono()
 
 redirectRouter.get('/:code', async (c) => {
   const code = c.req.param('code')
-  if (isReservedCode(code)) return c.json({ error: 'URL no encontrada' }, 404)
+  if (isReservedCode(code)) return shortLinkNotFound(c)
 
   const db = getDb()
   const [row] = await db
@@ -16,7 +17,7 @@ redirectRouter.get('/:code', async (c) => {
     .from(schema.urls)
     .where(and(eq(schema.urls.code, code), isNull(schema.urls.deletedAt)))
     .limit(1)
-  if (!row) return c.json({ error: 'URL no encontrada' }, 404)
+  if (!row) return shortLinkNotFound(c)
 
   // El clic se registra en segundo plano: el usuario no espera a la base de datos
   const referrer = c.req.header('referer') ?? null
