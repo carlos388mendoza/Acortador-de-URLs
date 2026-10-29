@@ -1,12 +1,22 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { Scalar } from '@scalar/hono-api-reference'
+import { authRouter } from './routes/auth'
 import { publicUrlsRouter } from './routes/public-urls'
 import { redirectRouter } from './routes/redirect'
 
 const app = new OpenAPIHono()
 
 const api = new OpenAPIHono()
+
+api.openAPIRegistry.registerComponent('securitySchemes', 'cookieAuth', {
+  type: 'apiKey',
+  in: 'cookie',
+  name: 'session',
+  description: 'Cookie de sesión que se crea con POST /auth/login',
+})
+
 api.route('/urls', publicUrlsRouter)
+api.route('/auth', authRouter)
 
 api.doc('/doc', {
   openapi: '3.0.0',
