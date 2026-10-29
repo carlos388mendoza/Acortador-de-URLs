@@ -1,10 +1,10 @@
-# Cumplimiento de requisitos del enunciado
+# Cumplimiento de requisitos del proyecto
 
 Verificación contra producción: `https://acortador-de-urls-iota.vercel.app`. Fecha de verificación: 29/10/2026.
 
 ## Tabla de cumplimiento
 
-| Requisito (enunciado) | Dónde está implementado | Cómo se probó en producción | Resultado |
+| Requisito | Dónde está implementado | Cómo se probó en producción | Resultado |
 |---|---|---|---|
 | API bajo `/api` | `src/index.ts` (`app.route('/api', api)`) | `curl https://.../api/doc` | ✅ 200 (OpenAPI JSON) |
 | `POST /api/urls/new` → 201 | `src/routes/public-urls.ts` (`createUrl`) | `POST /api/urls/new` con `{"url":"https://example.com/..."}` | ✅ 201 + `{code, url, short_url, created_at}` |
@@ -26,6 +26,6 @@ Verificación contra producción: `https://acortador-de-urls-iota.vercel.app`. F
 | Autenticación (login/logout/me) | `src/routes/auth.ts` | `POST /api/auth/login` → 200 + cookie | ✅ |
 | Roles (admin/user) | `src/middleware/auth.ts` (`requireAuth`, `requireAdmin`) | `user` en `/api/admin/users` → 403 | ✅ |
 
-## Nota sobre las rutas del enunciado
+## Nota sobre las rutas de los ejemplos
 
-El enunciado usa ejemplos con `localhost:3000/urls/new`. En este proyecto las rutas públicas viven bajo `/api`, por lo que el equivalente es `localhost:3000/api/urls/new` (y en producción `https://acortador-de-urls-iota.vercel.app/api/urls/new`). Lo mismo aplica a `GET /urls/{code}` → `/api/urls/{code}`. La redirección `GET /{code}` sí va en la raíz, como indica el enunciado.<|end|>
+Los requisitos del proyecto usan ejemplos con `localhost:3000/urls/new`. En este proyecto las rutas públicas viven bajo `/api`, por lo que el equivalente es `localhost:3000/api/urls/new` (y en producción `https://acortador-de-urls-iota.vercel.app/api/urls/new`). Lo mismo aplica a `GET /urls/{code}` → `/api/urls/{code}`. La redirección `GET /{code}` sí va en la raíz, como indican los requisitos.<|end|>

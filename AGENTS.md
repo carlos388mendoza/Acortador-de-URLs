@@ -1,6 +1,6 @@
 # Acortador de URLs
 
-Proyecto universitario en pareja: un acortador de URLs de uso general (estilo dub.co) con una API REST documentada y un dashboard administrativo.
+Proyecto en equipo: un acortador de URLs de uso general (estilo dub.co) con una API REST documentada y un dashboard administrativo.
 
 - **Carlos** (carlos388mendoza): backend, base de datos, autenticación, API keys, estadísticas e infraestructura. Herramientas: Claude Code / OpenCode.
 - **Compañero**: dashboard en React (interfaz, formularios, gráficas, QR). Herramienta: Codex.
@@ -58,7 +58,7 @@ Códigos reservados que nunca se pueden usar como código corto: `api`, `dashboa
 - Todas las rutas de `/api` se definen con `createRoute` para que aparezcan en Scalar.
 - Mensajes de commit en español con prefijo: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`.
 
-## API pública (ya definida por el enunciado)
+## API pública (definida por los requisitos del proyecto)
 
 `POST /api/urls/new` con `{ "url": "https://..." }`:
 - `201` → `{ "code", "url", "short_url", "created_at" }`
