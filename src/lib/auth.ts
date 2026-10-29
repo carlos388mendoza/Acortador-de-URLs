@@ -2,17 +2,18 @@ import bcrypt from 'bcryptjs'
 import type { Context } from 'hono'
 import { deleteCookie, setCookie } from 'hono/cookie'
 import { sign, verify } from 'hono/jwt'
+import { env } from './env'
 
 export const SESSION_COOKIE = 'session'
 const SESSION_SECONDS = 60 * 60 * 24 * 7 // 7 días
 
 function getSecret(): string {
-  const secret = process.env.JWT_SECRET
+  const secret = env.JWT_SECRET
   if (!secret) throw new Error('Falta la variable JWT_SECRET')
   return secret
 }
 
-const isProduction = () => process.env.NODE_ENV === 'production' || process.env.VERCEL === '1'
+const isProduction = () => env.NODE_ENV === 'production' || env.VERCEL === '1'
 
 export const hashPassword = (password: string) => bcrypt.hash(password, 10)
 export const verifyPassword = (password: string, hash: string) => bcrypt.compare(password, hash)

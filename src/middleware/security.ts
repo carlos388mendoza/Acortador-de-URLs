@@ -1,6 +1,7 @@
 import { secureHeaders } from 'hono/secure-headers'
+import { env } from '../lib/env'
 
-const isProduction = () => process.env.NODE_ENV === 'production' || process.env.VERCEL === '1'
+const isProduction = () => env.NODE_ENV === 'production' || env.VERCEL === '1'
 
 /**
  * CSP compatible con Scalar (`/api/reference`) y con el dashboard:

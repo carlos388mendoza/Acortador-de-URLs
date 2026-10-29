@@ -2,6 +2,7 @@ import { waitUntil } from '@vercel/functions'
 import { and, eq, lt, sql } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { getDb, schema } from '../db'
+import { env } from './env'
 
 export const RATE_LIMIT_MESSAGE = 'Demasiados intentos. Intenta de nuevo en unos minutos'
 
@@ -11,7 +12,7 @@ const RATE_LIMIT_RETENTION_MS = 60 * 60_000
 const LOGIN_ATTEMPT_RETENTION_MS = 24 * 60 * 60_000
 
 function positiveInt(name: string, fallback: number): number {
-  const raw = process.env[name]
+  const raw = env[name]
   if (!raw) return fallback
   const value = Number(raw)
   return Number.isInteger(value) && value > 0 ? value : fallback

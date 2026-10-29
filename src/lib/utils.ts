@@ -1,4 +1,5 @@
 ﻿import { customAlphabet } from 'nanoid'
+import { env } from './env'
 
 const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 
@@ -19,7 +20,6 @@ export function isReservedCode(code: string): boolean {
   return RESERVED_CODES.has(code.toLowerCase())
 }
 
-/** Solo se aceptan URLs http y https. */
 export function isHttpUrl(value: string): boolean {
   try {
     const { protocol } = new URL(value)
@@ -31,7 +31,7 @@ export function isHttpUrl(value: string): boolean {
 
 /** Dominio público: BASE_URL si existe; si no, el origen de la petición. */
 export function buildShortUrl(requestUrl: string, code: string): string {
-  const base = process.env.BASE_URL?.trim() || new URL(requestUrl).origin
+  const base = env.BASE_URL?.trim() || new URL(requestUrl).origin
   return `${base.replace(/\/+$/, '')}/${code}`
 }
 

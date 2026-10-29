@@ -22,6 +22,7 @@
     "@types/node": "^26.6.6",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.4",
+    "esbuild": "^0.25.0",
     "hono": "^4.13.14",
     "nanoid": "^6.0.2",
     "typescript": "^7.0.2",
