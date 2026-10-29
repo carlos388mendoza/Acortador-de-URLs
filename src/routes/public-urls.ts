@@ -1,6 +1,7 @@
 ﻿import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { and, eq, isNull } from 'drizzle-orm'
 import { getDb, schema } from '../db'
+import { hashApiKey } from '../lib/api-keys'
 import { ErrorSchema } from '../lib/schemas'
 import { buildShortUrl, generateCode, isHttpUrl, toIso } from '../lib/utils'
 
@@ -33,17 +34,25 @@ function toPublic(row: UrlRow, requestUrl: string) {
   }
 }
 
+// `{}` significa "sin autenticación también es válido": el Bearer es opcional
+const optionalBearer: Record<string, string[]>[] = [{}, { bearerAuth: [] }]
+
 const createUrl = createRoute({
   method: 'post',
   path: '/new',
   tags: ['API pública'],
   summary: 'Crear una URL corta',
+  description:
+    'Opcional: con `Authorization: Bearer <api_key>` la URL queda asociada al dueño de la clave.',
+
+  security: optionalBearer,
   request: {
     body: { content: { 'application/json': { schema: CreateBodySchema } }, required: true },
   },
   responses: {
     201: { content: { 'application/json': { schema: PublicUrlSchema } }, description: 'URL creada' },
     400: { content: { 'application/json': { schema: ErrorSchema } }, description: 'URL no válida' },
+    401: { content: { 'application/json': { schema: ErrorSchema } }, description: 'API key inválida o desactivada' },
   },
 })
 
@@ -71,11 +80,28 @@ publicUrlsRouter.openapi(createUrl, async (c) => {
   const { url } = c.req.valid('json')
   const db = getDb()
 
+  // Sin header: URL anónima. Con header: debe ser una key activa, si no, 401
+  let owner: { userId: number; apiKeyId: number } | null = null
+  const authorization = c.req.header('authorization')
+  if (authorization !== undefined) {
+    const match = /^Bearer\s+(\S+)$/i.exec(authorization.trim())
+    const [found] = match?.[1]
+      ? await db
+          .select({ id: schema.apiKeys.id, userId: schema.apiKeys.userId })
+          .from(schema.apiKeys)
+          .where(and(eq(schema.apiKeys.keyHash, await hashApiKey(match[1])), eq(schema.apiKeys.isActive, true)))
+          .limit(1)
+      : []
+    if (!found) return c.json({ error: 'API key inválida' }, 401)
+    owner = { userId: found.userId, apiKeyId: found.id }
+    await db.update(schema.apiKeys).set({ lastUsedAt: new Date() }).where(eq(schema.apiKeys.id, found.id))
+  }
+
   for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt++) {
     // onConflictDoNothing: si el código aleatorio ya existe, no falla y reintentamos con otro
     const [row] = await db
       .insert(schema.urls)
-      .values({ code: generateCode(), url })
+      .values({ code: generateCode(), url, userId: owner?.userId ?? null, apiKeyId: owner?.apiKeyId ?? null })
       .onConflictDoNothing({ target: schema.urls.code })
       .returning()
     if (row) return c.json(toPublic(row, c.req.url), 201)
