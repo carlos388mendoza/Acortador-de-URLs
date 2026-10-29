@@ -16,4 +16,8 @@ if (existsSync('dashboard/package.json')) {
   console.log('dashboard/ todavía no existe: se omite la compilación del dashboard')
 }
 
-run('npm run typecheck')
+if (process.env.VERCEL !== '1' && process.env.SKIP_TYPECHECK !== '1') {
+  run('npm run typecheck')
+} else {
+  console.log('Omitiendo typecheck en Vercel (se ejecuta en CI)')
+}
