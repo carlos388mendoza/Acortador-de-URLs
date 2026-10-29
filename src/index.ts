@@ -1,5 +1,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { Scalar } from '@scalar/hono-api-reference'
+// Importación directa para que Vercel detecte el framework Hono al desplegar
+import 'hono'
 import { FAVICON_ICO, LOGO_PNG } from './lib/branding'
 import { securityHeaders } from './middleware/security'
 import { adminSearchRouter } from './routes/admin-search'
