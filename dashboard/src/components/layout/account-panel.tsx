@@ -28,7 +28,7 @@ export function AccountPanel({
       <h2 className="font-heading text-base font-bold">Cuenta</h2>
       <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/60 p-2.5">
         <Avatar className="size-10">
-          <AvatarFallback className="bg-stone-900 font-bold text-white dark:bg-black">
+          <AvatarFallback className="bg-primary font-bold text-primary-foreground">
             {initials}
           </AvatarFallback>
         </Avatar>

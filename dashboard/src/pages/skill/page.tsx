@@ -97,7 +97,9 @@ export function SkillPage() {
         {children}
       </ol>
     ),
-    li: ({ children }: { children?: React.ReactNode }) => <li className="pl-1">{children}</li>,
+    li: ({ children }: { children?: React.ReactNode }) => (
+      <li className="pl-1">{children}</li>
+    ),
     a: ({ children, href }: { children?: React.ReactNode; href?: string }) => (
       <a href={href} className="text-brand underline underline-offset-4">
         {children}
@@ -154,7 +156,7 @@ export function SkillPage() {
             Copiar
           </Button>
           <Button
-            className="bg-[#1c1917] text-white hover:bg-stone-800"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={download}
             disabled={!content}
           >

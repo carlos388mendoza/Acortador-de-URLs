@@ -34,7 +34,7 @@ export function UserCard({
     <Card className="min-w-0 rounded-2xl">
       <CardHeader className="flex-row items-center gap-3">
         <div
-          className="grid size-11 shrink-0 place-items-center rounded-full bg-stone-900 font-bold text-white dark:bg-black"
+          className="grid size-11 shrink-0 place-items-center rounded-full bg-primary font-bold text-primary-foreground"
           aria-label={`Iniciales de ${user.name}`}
         >
           {initials}

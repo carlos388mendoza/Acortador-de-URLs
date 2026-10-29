@@ -33,7 +33,7 @@ export function SideNavigation({
   };
   const renderItem = ({ to, label, icon: Icon, external }: NavItem) => {
     const classes =
-      "flex min-w-0 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted";
+      "flex min-w-0 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-muted";
     const count = counts[label];
     if (external) {
       return (
@@ -48,7 +48,7 @@ export function SideNavigation({
               : undefined
           }
           onClick={onNavigate}
-          className={classes}
+          className={`${classes} text-foreground`}
         >
           <Icon className="size-4 shrink-0" />
           <span className="truncate">{label}</span>
@@ -63,7 +63,7 @@ export function SideNavigation({
         end={to === "/"}
         onClick={onNavigate}
         className={({ isActive }) =>
-          `${classes} ${isActive ? "bg-[#3d1a1c] text-[#ff6b70] hover:bg-[#3d1a1c] [&_svg]:text-[#ff6b70]" : ""}`
+          `${classes} ${isActive ? "bg-active text-active-foreground hover:bg-active [&_svg]:text-active-foreground" : "text-foreground"}`
         }
       >
         <Icon className="size-4 shrink-0" />
@@ -79,7 +79,7 @@ export function SideNavigation({
       aria-label="Navegación principal"
     >
       <Button
-        className="mb-5 h-11 w-full shrink-0 justify-start rounded-xl bg-[#1c1917] text-white hover:bg-stone-800"
+        className="mb-5 h-11 w-full shrink-0 justify-start rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
         onClick={onCreateUrl}
       >
         <Plus className="size-4" />

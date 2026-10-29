@@ -87,7 +87,7 @@ export function KeysPage() {
         subtitle="Claves para usar la API desde otros sistemas."
         action={
           <Button
-            className="h-11 rounded-xl bg-[#1c1917] text-white hover:bg-stone-800"
+            className="h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={() => setCreating(true)}
           >
             <Plus /> Nueva API key

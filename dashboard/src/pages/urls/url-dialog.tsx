@@ -122,7 +122,7 @@ export function UrlDialog({ url, onClose, onSaved, onQr }: UrlDialogProps) {
             </div>
             <DialogFooter>
               <Button
-                className="w-full bg-[#1c1917] text-white hover:bg-stone-800"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                 onClick={onClose}
               >
                 Listo
@@ -189,7 +189,7 @@ export function UrlDialog({ url, onClose, onSaved, onQr }: UrlDialogProps) {
                 <Button
                   type="submit"
                   disabled={saving}
-                  className="bg-[#1c1917] text-white hover:bg-stone-800"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   {saving
                     ? "Guardando…"

@@ -78,7 +78,7 @@ export function CreateKeyDialog({ onClose, onCreated }: CreateKeyDialogProps) {
             <Button
               type="submit"
               disabled={saving}
-              className="bg-[#1c1917] text-white hover:bg-stone-800"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {saving ? "Creando…" : "Crear API key"}
             </Button>
@@ -179,7 +179,7 @@ export function RenameKeyDialog({
             Cancelar
           </Button>
           <Button
-            className="bg-[#1c1917] text-white hover:bg-stone-800"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={() => void save()}
           >
             Guardar cambios
