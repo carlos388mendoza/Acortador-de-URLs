@@ -115,6 +115,9 @@ api.onError((err, c) => {
   return c.json({ error: 'Error interno del servidor' }, 500)
 })
 
+// La raíz del sitio lleva al dashboard
+app.get('/', (c) => c.redirect('/dashboard', 302))
+
 app.route('/api', api)
 // La redirección va siempre al final para no tapar las demás rutas
 app.route('/', redirectRouter)
