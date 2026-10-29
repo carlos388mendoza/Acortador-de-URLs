@@ -5,6 +5,34 @@ import { chromium } from "playwright";
 
 const baseUrl = "http://127.0.0.1:5174/dashboard/";
 const widths = [320, 375, 768, 1024, 1440];
+// Se ejecuta una vez por modo: `node scripts/responsive.mjs light` o `... dark`
+const theme = process.argv[2] ?? "light";
+if (!["light", "dark"].includes(theme))
+  throw new Error('El modo debe ser "light" o "dark"');
+const themeLabel = theme === "light" ? "claro" : "oscuro";
+const expectedColors =
+  theme === "light"
+    ? {
+        activeBg: "rgb(253, 232, 234)",
+        activeFg: "rgb(227, 6, 19)",
+        primaryBg: "rgb(28, 25, 23)",
+        primaryFg: "rgb(255, 255, 255)",
+      }
+    : {
+        activeBg: "rgb(61, 26, 28)",
+        activeFg: "rgb(255, 107, 112)",
+        primaryBg: "rgb(245, 245, 244)",
+        primaryFg: "rgb(28, 25, 23)",
+      };
+const luminance = (cssColor) => {
+  const [r, g, b] = cssColor.match(/\d+(\.\d+)?/g).map(Number);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const computed = (locator, props) =>
+  locator.first().evaluate((el, names) => {
+    const style = getComputedStyle(el);
+    return Object.fromEntries(names.map((name) => [name, style[name]]));
+  }, props);
 const routes = [
   { name: "inicio", path: "" },
   { name: "login", path: "login" },
@@ -15,6 +43,83 @@ const routes = [
   { name: "perfil", path: "profile" },
   { name: "skill", path: "skill" },
 ];
+
+const sameColors = (actual, expectedBg, expectedFg, label) => {
+  if (actual.backgroundColor !== expectedBg || actual.color !== expectedFg)
+    throw new Error(
+      `${label} en modo ${themeLabel}: se esperaba ${expectedBg} / ${expectedFg} y salió ${actual.backgroundColor} / ${actual.color}`,
+    );
+};
+
+// Colores de estado activo, botones principales y barra inferior en el modo actual
+async function checkThemeColors(page, width) {
+  const mobile = width < 1024;
+  const scope = mobile
+    ? page.locator('nav[aria-label="Navegación móvil"]')
+    : page.locator("aside");
+
+  const activeStyle = await computed(scope.locator('a[aria-current="page"]'), [
+    "backgroundColor",
+    "color",
+  ]);
+  sameColors(
+    activeStyle,
+    expectedColors.activeBg,
+    expectedColors.activeFg,
+    `Elemento activo (${mobile ? "barra inferior" : "menú lateral"}) a ${width}px`,
+  );
+  if (theme === "light" && luminance(activeStyle.backgroundColor) < 200)
+    throw new Error(`El activo en modo claro es oscuro a ${width}px`);
+
+  const primary = mobile
+    ? scope.locator('button[aria-label="Nueva URL"] > span')
+    : scope.getByRole("button", { name: "Nueva URL" });
+  sameColors(
+    await computed(primary, ["backgroundColor", "color"]),
+    expectedColors.primaryBg,
+    expectedColors.primaryFg,
+    `Botón principal a ${width}px`,
+  );
+
+  if (!mobile)
+    sameColors(
+      await computed(scope.locator('[data-slot="avatar-fallback"]'), [
+        "backgroundColor",
+        "color",
+      ]),
+      expectedColors.primaryBg,
+      expectedColors.primaryFg,
+      "Avatar del usuario",
+    );
+
+  if (mobile) {
+    // El botón "Nuevo" debe quedar dentro de la barra, y la barra no puede crecer
+    const navBox = await scope.boundingBox();
+    const circle = await primary.boundingBox();
+    const cells = await scope
+      .locator(":scope > *")
+      .evaluateAll((elements) =>
+        elements.map((el) => el.getBoundingClientRect().height),
+      );
+    if (!navBox || !circle)
+      throw new Error("No se pudo medir la barra inferior");
+    if (
+      circle.y < navBox.y - 0.5 ||
+      circle.y + circle.height > navBox.y + navBox.height + 0.5 ||
+      circle.x < navBox.x ||
+      circle.x + circle.width > navBox.x + navBox.width
+    )
+      throw new Error(`El botón "Nuevo" sobresale de la barra a ${width}px`);
+    if (circle.height > 48)
+      throw new Error(`El botón "Nuevo" mide ${circle.height}px (máx. 48)`);
+    if (cells.length !== 5 || cells.some((h) => Math.abs(h - cells[0]) > 0.5))
+      throw new Error(
+        `Los botones de la barra no tienen la misma altura a ${width}px: ${cells}`,
+      );
+    if (navBox.height > 64)
+      throw new Error(`La barra inferior creció a ${navBox.height}px`);
+  }
+}
 
 let server;
 let browser;
@@ -61,7 +166,10 @@ try {
         .join(":"),
     },
   });
-  const page = await browser.newPage();
+  const page = await browser.newPage({ colorScheme: theme });
+  await page.addInitScript((value) => {
+    localStorage.setItem("au-theme", value);
+  }, theme);
   await mkdir("screenshots", { recursive: true });
   for (const width of widths) {
     for (const route of routes) {
@@ -127,12 +235,24 @@ try {
           `Desbordamiento horizontal en ${route.name} a ${width}px: ${dimensions.scrollWidth}px > ${dimensions.clientWidth}px; ${JSON.stringify(dimensions.offenders)}`,
         );
       }
+      if (route.name === "inicio") {
+        const isDark = await page.evaluate(() =>
+          document.documentElement.classList.contains("dark"),
+        );
+        if (isDark !== (theme === "dark"))
+          throw new Error(`El modo ${themeLabel} no se aplicó a ${width}px`);
+        await checkThemeColors(page, width);
+      }
       if (width === 1440)
         await page.screenshot({
-          path: `screenshots/${route.name}.png`,
+          path: `screenshots/${route.name}-${themeLabel}.png`,
           fullPage: true,
         });
-      console.log(`✓ ${route.name}: ${width}px`);
+      if (width === 375 && route.name === "inicio")
+        await page
+          .locator('nav[aria-label="Navegación móvil"]')
+          .screenshot({ path: `screenshots/barra-inferior-${themeLabel}.png` });
+      console.log(`✓ ${route.name}: ${width}px (${themeLabel})`);
     }
   }
 
@@ -170,6 +290,15 @@ try {
         '[data-slot="sheet-content"][data-side="left"]',
       );
       await sideSheet.waitFor({ state: "visible" });
+      sameColors(
+        await computed(sideSheet.locator('a[aria-current="page"]'), [
+          "backgroundColor",
+          "color",
+        ]),
+        expectedColors.activeBg,
+        expectedColors.activeFg,
+        `Elemento activo del panel móvil a ${width}px`,
+      );
       if (
         (await page
           .locator('[role="dialog"]:visible, [role="alertdialog"]:visible')
@@ -355,6 +484,22 @@ try {
       .count()) > 1
   )
     throw new Error("La paleta resaltó más de un elemento al pasar el cursor");
+  const selectedItem = await computed(
+    page.locator('[data-slot="command-item"][data-selected="true"]'),
+    ["backgroundColor", "color"],
+  );
+  if (
+    theme === "light" &&
+    (luminance(selectedItem.backgroundColor) < 200 ||
+      luminance(selectedItem.color) > 150)
+  )
+    throw new Error(
+      `La paleta en modo claro usa colores oscuros: ${selectedItem.backgroundColor} / ${selectedItem.color}`,
+    );
+  if (theme === "dark" && selectedItem.backgroundColor !== "rgb(61, 26, 28)")
+    throw new Error(
+      `La paleta en modo oscuro no usa el fondo activo: ${selectedItem.backgroundColor}`,
+    );
   console.log("✓ la paleta solo resalta el elemento seleccionado");
   await page
     .getByPlaceholder("Busca URLs, usuarios, keys o acciones...")
@@ -468,11 +613,15 @@ try {
     .getByRole("dialog")
     .getByRole("button", { name: "Descargar PNG" })
     .click();
-  await page.screenshot({ path: "screenshots/qr.png", fullPage: true });
+  await page.screenshot({
+    path: `screenshots/qr-${themeLabel}.png`,
+    fullPage: true,
+  });
   await page.keyboard.press("Escape");
 
   const macPage = await browser.newPage({
     viewport: { width: 1440, height: 900 },
+    colorScheme: theme,
   });
   await macPage.addInitScript(() =>
     Object.defineProperty(navigator, "platform", {
