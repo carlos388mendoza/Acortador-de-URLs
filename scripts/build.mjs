@@ -11,8 +11,8 @@ function run(command) {
 if (existsSync('dashboard/package.json')) {
   run('npm install --prefix dashboard --include=dev --no-save')
   // Se invoca vite directamente para no depender de tsc (los tipos se validan en CI/local)
-  run('rm -rf out')
-  run('cd dashboard && ./node_modules/.bin/vite build --outDir ../out/dashboard')
+  run('rm -rf public')
+  run('cd dashboard && ./node_modules/.bin/vite build --outDir ../public/dashboard')
 } else {
   console.log('dashboard/ todavía no existe: se omite la compilación del dashboard')
 }
