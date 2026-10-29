@@ -16,10 +16,13 @@ export async function mockRequest(path: string, init: RequestInit = {}): Promise
   const method = init.method ?? 'GET'
   const url = new URL(path, window.location.origin)
   const body = init.body ? JSON.parse(String(init.body)) as Record<string, unknown> : {}
+  if (url.pathname === '/api/auth/me' && method === 'PATCH') return { user: { ...mockUser, ...body } }
   if (url.pathname === '/api/auth/me') return { user: mockUser }
   if (url.pathname === '/api/auth/login') return { user: mockUser }
   if (url.pathname === '/api/auth/logout') return null
-  if (url.pathname === '/api/auth/me' && method === 'PATCH') return { user: { ...mockUser, ...body } }
+  if (url.pathname.startsWith('/api/admin/urls/')) { const id = url.pathname.split('/').at(-1); const index = mockUrls.findIndex((item) => item.id === id); if (method === 'PATCH' && index >= 0) { mockUrls[index] = { ...mockUrls[index], ...body, updated_at: now }; return { admin_url: mockUrls[index] } } if (method === 'DELETE' && index >= 0) { mockUrls.splice(index, 1); return null } }
+  if (url.pathname.startsWith('/api/admin/api-keys/')) { const id = url.pathname.split('/').at(-1); const key = mockKeys.find((item) => item.id === id); if (key && method === 'PATCH') { Object.assign(key, body); return { api_key: key } } if (key && method === 'DELETE') { key.is_active = false; return null } }
+  if (url.pathname.startsWith('/api/admin/users/')) { const id = url.pathname.split('/').at(-1); if (method === 'PATCH') return { user: { ...mockUser, ...body, id } }; if (method === 'DELETE') return null }
   if (url.pathname === '/api/admin/urls') {
     if (method === 'POST') {
       const created: AdminUrl = { id: crypto.randomUUID(), code: String(body.code || `demo${mockUrls.length + 1}`), url: String(body.url), short_url: `http://localhost:3000/${String(body.code || `demo${mockUrls.length + 1}`)}`, click_count: 0, created_at: now, updated_at: now, creator: { id: mockUser.id, name: mockUser.name } }
@@ -36,7 +39,7 @@ export async function mockRequest(path: string, init: RequestInit = {}): Promise
     }
     return { data: mockKeys }
   }
-  if (url.pathname === '/api/admin/users') return { data: [mockUser, { ...mockUser, id: 'user-2', name: 'Carlos Mendoza', email: 'carlos@example.com', role: 'user' }], total: 2, page: 1, limit: 20 }
+  if (url.pathname === '/api/admin/users') { if (method === 'POST') return { user: { ...mockUser, ...body, id: crypto.randomUUID() } }; return { data: [mockUser, { ...mockUser, id: 'user-2', name: 'Carlos Mendoza', email: 'carlos@example.com', role: 'user' }], total: 2, page: 1, limit: 20 } }
   if (url.pathname === '/api/admin/stats/summary') return mockSummary
   if (url.pathname === '/api/admin/stats/top-urls') return { data: [...mockUrls].sort((a, b) => b.click_count - a.click_count) }
   if (url.pathname === '/api/admin/stats/recent-urls') return { data: mockUrls }
