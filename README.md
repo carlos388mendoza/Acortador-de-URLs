@@ -37,6 +37,7 @@ En Vercel se configuran en *Settings → Environment Variables*; después hay qu
 | Script | Qué hace |
 |---|---|
 | `npm run dev` | Servidor local en el puerto 3000 (también sirve `public/dashboard`) |
+| `npm run branding` | Genera logo, favicons y el `.ico` en `branding/` a partir de `branding/logo-original.*` |
 | `npm run typecheck` | Revisa los tipos de TypeScript |
 | `npm run build` | Instala y compila `dashboard/` hacia `public/dashboard` (si existe) y luego hace typecheck |
 | `npm run db:push` / `db:studio` | Sincroniza el esquema con Neon / abre Drizzle Studio |
