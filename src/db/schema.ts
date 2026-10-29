@@ -6,6 +6,7 @@
   serial,
   text,
   timestamp,
+  uniqueIndex,
   varchar,
 } from 'drizzle-orm/pg-core'
 
@@ -62,4 +63,40 @@ export const clicks = pgTable(
     userAgent: text('user_agent'),
   },
   (t) => [index('clicks_url_id_idx').on(t.urlId), index('clicks_clicked_at_idx').on(t.clickedAt)],
+)
+
+/**
+ * Intentos de login fallidos por combinación IP + correo.
+ * Al llegar al máximo se guarda `blocked_until` y no se vuelve a comprobar la contraseña hasta que expire.
+ */
+export const loginAttempts = pgTable(
+  'login_attempts',
+  {
+    id: serial('id').primaryKey(),
+    ip: varchar('ip', { length: 45 }).notNull(),
+    email: text('email').notNull(),
+    failedCount: integer('failed_count').notNull().default(0),
+    windowStartedAt: timestamp('window_started_at', { withTimezone: true }).notNull().defaultNow(),
+    blockedUntil: timestamp('blocked_until', { withTimezone: true }),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('login_attempts_ip_email_idx').on(t.ip, t.email),
+    index('login_attempts_updated_at_idx').on(t.updatedAt),
+  ],
+)
+
+/** Contadores de límite de peticiones: una fila por clave y ventana. */
+export const rateLimits = pgTable(
+  'rate_limits',
+  {
+    id: serial('id').primaryKey(),
+    key: varchar('key', { length: 200 }).notNull(),
+    count: integer('count').notNull().default(0),
+    windowStartedAt: timestamp('window_started_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('rate_limits_key_idx').on(t.key),
+    index('rate_limits_window_started_at_idx').on(t.windowStartedAt),
+  ],
 )
