@@ -1,6 +1,6 @@
 import { useState } from "react";
+import { Plus, Users } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { api, apiDelete } from "@/api/client";
 import type { ApiUserResponse, Page, User } from "@/types";
@@ -25,13 +25,13 @@ export function UsersPage() {
     queryFn: () => api<Page<User>>("/api/admin/users?page=1&limit=100"),
     enabled: me.data?.user.role === "admin",
   });
-
   const refresh = () => client.invalidateQueries({ queryKey: ["users"] });
+
   const deleteUser = async () => {
     if (!deleting) return;
     try {
       await apiDelete(`/api/admin/users/${deleting.id}`);
-      toast.success("Persona borrada");
+      toast.success("Usuario eliminado");
       setDeleting(null);
       await refresh();
     } catch (error) {
@@ -44,17 +44,30 @@ export function UsersPage() {
     return (
       <Card>
         <CardContent className="p-8 text-center text-destructive">
-          No tienes permiso para administrar personas.
+          No tienes permiso para administrar usuarios.
         </CardContent>
       </Card>
     );
   }
 
+  const adminUsers =
+    users.data?.data.filter((user) => user.role === "admin") ?? [];
+  const regularUsers =
+    users.data?.data.filter((user) => user.role === "user") ?? [];
+
   return (
-    <div className="grid min-w-0 gap-5">
-      <div className="flex justify-end">
-        <Button onClick={() => setEditing(null)}>
-          <Plus className="mr-2 size-4" /> Nueva persona
+    <div className="grid min-w-0 gap-6">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-brand">
+            Administración
+          </p>
+          <h2 className="font-heading text-3xl font-bold sm:text-4xl">
+            Usuarios
+          </h2>
+        </div>
+        <Button className="h-11 rounded-xl" onClick={() => setEditing(null)}>
+          <Plus /> Nuevo usuario
         </Button>
       </div>
       {users.isPending ? (
@@ -65,19 +78,34 @@ export function UsersPage() {
             {errorMessage(users.error)}
           </CardContent>
         </Card>
+      ) : users.data.data.length === 0 ? (
+        <Card>
+          <CardContent className="grid justify-items-center gap-3 p-10">
+            <Users className="size-10 text-brand" />
+            <h2 className="font-heading text-xl font-bold">No hay usuarios</h2>
+            <p className="text-sm text-muted-foreground">
+              Crea una cuenta para dar acceso a tu equipo.
+            </p>
+            <Button onClick={() => setEditing(null)}>Crear usuario</Button>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {users.data.data.map((user) => (
-            <UserCard
-              key={user.id}
-              user={user}
-              onEdit={setEditing}
-              onDelete={setDeleting}
-            />
-          ))}
+        <div className="grid gap-8">
+          <UserSection
+            title="Administradores"
+            red
+            items={adminUsers}
+            onEdit={setEditing}
+            onDelete={setDeleting}
+          />
+          <UserSection
+            title="Usuarios"
+            items={regularUsers}
+            onEdit={setEditing}
+            onDelete={setDeleting}
+          />
         </div>
       )}
-
       {editing !== undefined && (
         <UserDialog
           key={editing?.id ?? "new-user"}
@@ -88,11 +116,52 @@ export function UsersPage() {
       )}
       {deleting && (
         <ConfirmDeleteDialog
-          title={`¿Borrar a ${deleting.name}?`}
+          title={`¿Eliminar a ${deleting.name}?`}
           onClose={() => setDeleting(null)}
           onConfirm={deleteUser}
         />
       )}
     </div>
+  );
+}
+
+function UserSection({
+  title,
+  red = false,
+  items,
+  onEdit,
+  onDelete,
+}: {
+  title: string;
+  red?: boolean;
+  items: User[];
+  onEdit: (user: User) => void;
+  onDelete: (user: User) => void;
+}) {
+  return (
+    <section className="grid gap-3">
+      <h3 className="flex items-center gap-2 font-heading text-xl font-bold">
+        <span
+          className={`size-2.5 rounded-full ${red ? "bg-brand" : "bg-stone-900 dark:bg-stone-300"}`}
+        />
+        {title}
+      </h3>
+      {items.length ? (
+        <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {items.map((user) => (
+            <UserCard
+              key={user.id}
+              user={user}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-2xl border border-dashed border-border p-5 text-sm text-muted-foreground">
+          No hay cuentas en este grupo.
+        </p>
+      )}
+    </section>
   );
 }

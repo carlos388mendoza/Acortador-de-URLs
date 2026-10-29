@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { KeyRound, Plus } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { api, apiDelete, apiPatch } from "@/api/client";
+import { api, apiPatch } from "@/api/client";
 import type { ApiKey } from "@/types";
 import { errorMessage } from "@/lib/format";
-import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { LoadingCards } from "@/components/shared/loading-cards";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,7 +19,6 @@ export function KeysPage() {
   const queryClient = useQueryClient();
   const [creating, setCreating] = useState(false);
   const [secret, setSecret] = useState("");
-  const [deleting, setDeleting] = useState<ApiKey | null>(null);
   const [renaming, setRenaming] = useState<ApiKey | null>(null);
   const keys = useQuery({
     queryKey: ["keys"],
@@ -47,29 +45,28 @@ export function KeysPage() {
     }
   };
 
-  const deactivateKey = async () => {
-    if (!deleting) return;
-    try {
-      await apiDelete(`/api/admin/api-keys/${deleting.id}`);
-      toast.success("API key desactivada");
-      setDeleting(null);
-      await refresh();
-    } catch (error) {
-      toast.error(errorMessage(error));
-    }
-  };
-
   const showNewSecret = (key: string) => {
     setCreating(false);
     setSecret(key);
     void refresh();
   };
 
+  const activeKeys = keys.data?.data.filter((item) => item.is_active) ?? [];
+  const inactiveKeys = keys.data?.data.filter((item) => !item.is_active) ?? [];
+
   return (
-    <div className="grid min-w-0 gap-5">
-      <div className="flex justify-end">
-        <Button onClick={() => setCreating(true)}>
-          <Plus className="mr-2 size-4" /> Nueva API key
+    <div className="grid min-w-0 gap-6">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-brand">
+            Desarrolladores
+          </p>
+          <h2 className="font-heading text-3xl font-bold sm:text-4xl">
+            API keys
+          </h2>
+        </div>
+        <Button className="h-11 rounded-xl" onClick={() => setCreating(true)}>
+          <Plus /> Nueva API key
         </Button>
       </div>
 
@@ -84,22 +81,29 @@ export function KeysPage() {
       ) : keys.data.data.length === 0 ? (
         <Card>
           <CardContent className="grid justify-items-center gap-3 p-10">
-            <KeyRound className="size-10 text-muted-foreground" />
-            <h2 className="font-semibold">No hay API keys</h2>
+            <KeyRound className="size-10 text-brand" />
+            <h2 className="font-heading text-xl font-bold">No hay API keys</h2>
+            <p className="text-sm text-muted-foreground">
+              Crea una clave para conectar tus aplicaciones.
+            </p>
             <Button onClick={() => setCreating(true)}>Crear API key</Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {keys.data.data.map((apiKey) => (
-            <ApiKeyCard
-              key={apiKey.id}
-              apiKey={apiKey}
-              onRename={setRenaming}
-              onDelete={setDeleting}
-              onToggle={(item, active) => void toggleKey(item, active)}
-            />
-          ))}
+        <div className="grid gap-8">
+          <KeySection
+            title="Activas"
+            active
+            items={activeKeys}
+            onRename={setRenaming}
+            onToggle={toggleKey}
+          />
+          <KeySection
+            title="Inactivas"
+            items={inactiveKeys}
+            onRename={setRenaming}
+            onToggle={toggleKey}
+          />
         </div>
       )}
 
@@ -120,13 +124,47 @@ export function KeysPage() {
           onSaved={() => void refresh()}
         />
       )}
-      {deleting && (
-        <ConfirmDeleteDialog
-          title="¿Desactivar esta API key?"
-          onClose={() => setDeleting(null)}
-          onConfirm={deactivateKey}
-        />
-      )}
     </div>
+  );
+}
+
+function KeySection({
+  title,
+  active = false,
+  items,
+  onRename,
+  onToggle,
+}: {
+  title: string;
+  active?: boolean;
+  items: ApiKey[];
+  onRename: (item: ApiKey) => void;
+  onToggle: (item: ApiKey, isActive: boolean) => void;
+}) {
+  return (
+    <section className="grid gap-3">
+      <h3 className="flex items-center gap-2 font-heading text-xl font-bold">
+        <span
+          className={`size-2.5 rounded-full ${active ? "bg-green-600" : "bg-stone-400"}`}
+        />
+        {title}
+      </h3>
+      {items.length ? (
+        <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {items.map((item) => (
+            <ApiKeyCard
+              key={item.id}
+              apiKey={item}
+              onRename={onRename}
+              onToggle={onToggle}
+            />
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-2xl border border-dashed border-border p-5 text-sm text-muted-foreground">
+          No hay API keys {active ? "activas" : "inactivas"}.
+        </p>
+      )}
+    </section>
   );
 }

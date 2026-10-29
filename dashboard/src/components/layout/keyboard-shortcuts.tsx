@@ -63,17 +63,19 @@ export function useKeyboardShortcuts({
         waitingForDestination = false;
         const routes: Record<string, string> = {
           h: "/",
-          u: "/urls",
+          l: "/urls",
           k: "/api-keys",
-          p: "/users",
+          u: "/users",
         };
         const route = routes[event.key.toLowerCase()];
         if (route) navigate(route);
       } else if (event.key === "/") {
         event.preventDefault();
-        document
-          .querySelector<HTMLInputElement>('[aria-label="Buscar URLs"]')
-          ?.focus();
+        const searchInput = document.querySelector<HTMLInputElement>(
+          '[aria-label="Buscar URLs"]',
+        );
+        if (searchInput) searchInput.focus();
+        else openPalette();
       } else if (event.key.toLowerCase() === "n") {
         createUrl();
       }

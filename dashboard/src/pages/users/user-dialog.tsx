@@ -48,7 +48,7 @@ export function UserDialog({
     try {
       if (user) await apiPatch(`/api/admin/users/${user.id}`, body);
       else await apiPost("/api/admin/users", { ...body, password });
-      toast.success(user ? "Persona actualizada" : "Persona creada");
+      toast.success(user ? "Usuario actualizado" : "Usuario creado");
       onSaved();
       onClose();
     } catch (error) {
@@ -60,7 +60,7 @@ export function UserDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{user ? "Editar persona" : "Crear persona"}</DialogTitle>
+          <DialogTitle>{user ? "Editar usuario" : "Crear usuario"}</DialogTitle>
           <DialogDescription>
             Completa los datos de la cuenta.
           </DialogDescription>

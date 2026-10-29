@@ -40,7 +40,7 @@ Para conectar el backend real que se está ejecutando en local o desplegado, usa
 - `Ctrl+K` en Windows/Linux o `⌘K` en macOS: abrir la paleta de comandos.
 - `/`: enfocar el buscador.
 - `N`: crear una URL.
-- `G` y luego `H`, `U`, `K` o `P`: Inicio, URLs, API keys o Personas.
+- `G` y luego `H`, `L`, `K` o `U`: Inicio, URLs, API keys o Usuarios.
 - `?`: mostrar los atajos.
 - `Esc`: cerrar el diálogo abierto.
 
@@ -50,11 +50,13 @@ Los atajos de una letra se desactivan al escribir en un campo. La paleta busca U
 
 - `src/api/`: cliente único con cookies y respuestas simuladas de desarrollo.
 - `src/components/layout/`: menú, tema, paleta, atajos, sesión y protección de rutas.
+- `src/components/layout/account-panel.tsx`: cuenta, perfil, tema y cierre de sesión.
 - `src/components/shared/`: skeletons y confirmación reutilizable.
 - `src/components/ui/`: componentes de shadcn/ui.
 - `src/pages/urls/`: tarjetas de URL, formularios y códigos QR.
 - `src/pages/keys/`: tarjetas y diálogos de API keys.
 - `src/pages/users/`: tarjetas y formulario de usuarios.
+- `src/pages/admin/`: resumen administrativo y pestaña de usuarios.
 - `src/pages/stats/`: resumen, gráficas y tarjetas de estadísticas.
 - `src/pages/profile/`: consulta y formulario del perfil.
 - `src/pages/login/`: pantalla de acceso.
@@ -70,4 +72,8 @@ npm run lint
 npm run check:responsive
 ```
 
-`check:responsive` inicia Vite con mocks en un puerto separado, revisa seis páginas a 320, 375, 768, 1024 y 1440 px, y prueba el desbordamiento, los atajos, la búsqueda, QR y la tecla `⌘` simulando macOS. Crea capturas locales en `screenshots/`, carpeta ignorada por Git.
+`check:responsive` inicia Vite con mocks en un puerto separado, revisa las páginas a 320, 375, 768, 1024 y 1440 px, y prueba el desbordamiento, los atajos, QR, la tecla `⌘` simulando macOS y que menú lateral, paleta y cuenta nunca aparezcan abiertos a la vez. Crea capturas locales en `screenshots/`, carpeta ignorada por Git.
+
+## Diseño
+
+La interfaz usa tonos beige, blanco, negro y rojo. Las fuentes Bricolage Grotesque y Figtree se sirven desde paquetes locales de Fontsource, sin depender de Google Fonts.

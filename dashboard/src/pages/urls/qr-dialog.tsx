@@ -21,7 +21,7 @@ type QrDialogProps = {
 export function QrDialog({ url, onClose }: QrDialogProps) {
   const preview = useRef<HTMLDivElement>(null);
   const qrCode = useRef<QRCodeStyling | null>(null);
-  const [color, setColor] = useState("#172554");
+  const [color, setColor] = useState("#e30613");
   const [logo, setLogo] = useState<string | undefined>("/dashboard/logo.png");
 
   // Genera una vista previa nueva cada vez que cambia color, logo o destino.

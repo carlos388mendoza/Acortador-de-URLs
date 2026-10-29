@@ -31,7 +31,10 @@ export function LogoutConfirmDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>
+          <AlertDialogAction
+            className="bg-destructive text-white hover:bg-destructive/85"
+            onClick={onConfirm}
+          >
             Cerrar sesión
           </AlertDialogAction>
         </AlertDialogFooter>

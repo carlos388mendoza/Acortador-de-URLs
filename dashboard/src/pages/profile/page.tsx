@@ -34,5 +34,17 @@ export function ProfilePage() {
     );
   }
 
-  return <ProfileForm key={profile.data.user.id} user={profile.data.user} />;
+  return (
+    <div className="grid min-w-0 gap-6">
+      <div>
+        <p className="text-sm font-semibold uppercase tracking-wide text-brand">
+          Cuenta
+        </p>
+        <h2 className="font-heading text-3xl font-bold sm:text-4xl">
+          Mi perfil
+        </h2>
+      </div>
+      <ProfileForm key={profile.data.user.id} user={profile.data.user} />
+    </div>
+  );
 }

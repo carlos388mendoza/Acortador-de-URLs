@@ -40,9 +40,9 @@ export function ProfileForm({ user }: { user: User }) {
   };
 
   return (
-    <Card className="max-w-2xl">
+    <Card className="max-w-2xl rounded-2xl">
       <CardHeader>
-        <CardTitle>Mi perfil</CardTitle>
+        <CardTitle className="text-2xl">Datos de tu cuenta</CardTitle>
         <p className="text-sm text-muted-foreground">
           Actualiza tu nombre, correo o contraseña.
         </p>

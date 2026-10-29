@@ -1,9 +1,20 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, BarChart3, Link2, Users } from "lucide-react";
+import {
+  ChartLine,
+  Clock,
+  Flame,
+  KeyRound,
+  Link2,
+  MousePointerClick,
+  Trophy,
+  Users,
+} from "lucide-react";
 import { api } from "@/api/client";
-import type { AdminUrl, CreatorStat, Summary } from "@/types";
+import type { AdminUrl, ApiUserResponse, CreatorStat, Summary } from "@/types";
 import { errorMessage } from "@/lib/format";
+import { Button } from "@/components/ui/button";
 import { LoadingCards } from "@/components/shared/loading-cards";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -28,11 +39,16 @@ import { SummaryCard } from "./summary-card";
 type ClickPoint = { date: string; clicks: number };
 
 const chartConfig = {
-  clicks: { label: "Clics", color: "var(--color-primary)" },
+  clicks: { label: "Clics", color: "var(--brand)" },
 } satisfies ChartConfig;
 
 export function StatsPage() {
   const [days, setDays] = useState("7");
+  const navigate = useNavigate();
+  const me = useQuery({
+    queryKey: ["me"],
+    queryFn: () => api<ApiUserResponse>("/api/auth/me"),
+  });
   const summary = useQuery({
     queryKey: ["stats", "summary"],
     queryFn: () => api<Summary>("/api/admin/stats/summary"),
@@ -73,13 +89,38 @@ export function StatsPage() {
 
   return (
     <div className="grid min-w-0 gap-6">
-      <div>
-        <h2 className="text-2xl font-bold">¡Hola! 👋</h2>
-        <p className="mt-1 text-muted-foreground">
-          Aquí tienes el resumen de tu actividad.
-        </p>
-      </div>
-
+      <section className="relative isolate flex min-h-56 min-w-0 items-center overflow-hidden rounded-3xl bg-brand px-6 py-8 text-white shadow-[0_14px_32px_rgb(227_6_19/18%)] sm:px-9 lg:px-12">
+        <div className="relative z-10 max-w-2xl">
+          <p className="text-sm font-semibold text-white/80">
+            Hola, {me.data?.user.name ?? "equipo"}
+          </p>
+          <h2 className="mt-2 max-w-xl font-heading text-3xl font-bold leading-tight sm:text-4xl">
+            Acorta, comparte y mide tus enlaces
+          </h2>
+          <p className="mt-3 max-w-lg text-sm text-white/80 sm:text-base">
+            Administra tus URLs y conoce el alcance de cada enlace.
+          </p>
+          <Button
+            className="mt-6 rounded-xl bg-white text-stone-950 hover:bg-white/90"
+            onClick={() => {
+              navigate("/urls");
+              window.setTimeout(
+                () => window.dispatchEvent(new Event("new-url")),
+                100,
+              );
+            }}
+          >
+            <Link2 /> Crear URL
+          </Button>
+        </div>
+        <div className="absolute right-10 hidden size-48 place-items-center rounded-full bg-white shadow-xl lg:grid">
+          <img
+            src="/dashboard/logo.png"
+            alt=""
+            className="size-40 rounded-full object-cover"
+          />
+        </div>
+      </section>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
           label="URLs creadas"
@@ -89,24 +130,26 @@ export function StatsPage() {
         <SummaryCard
           label="Clics totales"
           value={summary.data.total_clicks}
-          icon={Activity}
+          icon={MousePointerClick}
         />
         <SummaryCard
-          label="Personas"
+          label="Usuarios"
           value={summary.data.total_users}
           icon={Users}
         />
         <SummaryCard
           label="API keys activas"
           value={summary.data.active_api_keys}
-          icon={BarChart3}
+          icon={KeyRound}
         />
       </div>
 
       <Card className="min-w-0">
         <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
           <div>
-            <CardTitle>Clics por día</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <ChartLine className="size-5 text-brand" /> Clics por día
+            </CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
               Actividad en los últimos {days} días
             </p>
@@ -190,7 +233,9 @@ export function StatsPage() {
       <div className="grid min-w-0 gap-5 lg:grid-cols-2">
         <Card className="min-w-0">
           <CardHeader>
-            <CardTitle>URLs más populares</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Flame className="size-5 text-brand" /> Más populares
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
             {popularUrls.isPending ? (
@@ -199,16 +244,22 @@ export function StatsPage() {
               <p className="text-sm text-destructive">
                 {errorMessage(popularUrls.error)}
               </p>
-            ) : (
+            ) : popularUrls.data.data.length ? (
               popularUrls.data.data.map((url) => (
                 <PopularUrlCard key={url.id} url={url} />
               ))
+            ) : (
+              <p className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">
+                Aún no hay enlaces populares.
+              </p>
             )}
           </CardContent>
         </Card>
         <Card className="min-w-0">
           <CardHeader>
-            <CardTitle>URLs recientes</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="size-5 text-brand" /> Creadas recientemente
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
             {recentUrls.isPending ? (
@@ -217,10 +268,14 @@ export function StatsPage() {
               <p className="text-sm text-destructive">
                 {errorMessage(recentUrls.error)}
               </p>
-            ) : (
+            ) : recentUrls.data.data.length ? (
               recentUrls.data.data.map((url) => (
                 <RecentUrlCard key={url.id} url={url} />
               ))
+            ) : (
+              <p className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">
+                Todavía no hay URLs recientes.
+              </p>
             )}
           </CardContent>
         </Card>
@@ -228,7 +283,9 @@ export function StatsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Top creadores</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Trophy className="size-5 text-brand" /> Top creadores
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {creators.isPending ? (
@@ -237,10 +294,14 @@ export function StatsPage() {
             <p className="text-sm text-destructive">
               {errorMessage(creators.error)}
             </p>
-          ) : (
+          ) : creators.data.data.length ? (
             creators.data.data.map((creator) => (
               <CreatorCard key={creator.user.id} creator={creator} />
             ))
+          ) : (
+            <p className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">
+              Los creadores aparecerán cuando haya URLs.
+            </p>
           )}
         </CardContent>
       </Card>
