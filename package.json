@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch --env-file=.env src/dev.ts",
     "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit",
+    "build": "node scripts/build.mjs",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "seed:admin": "tsx --env-file=.env scripts/seed-admin.ts",

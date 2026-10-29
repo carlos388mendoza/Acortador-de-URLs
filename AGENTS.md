@@ -178,3 +178,16 @@ Para un `user` normal, las estadísticas se calculan solo con sus propias URLs.
 - Antes de abrir un PR: `git pull origin main`, resolver conflictos, y que pasen `npm run typecheck` y el build.
 - El backend no toca `dashboard/` y el dashboard no toca `src/`, salvo acuerdo explícito.
 - Al terminar cada fase, detenerse y mostrar un resumen de lo hecho, cómo probarlo y el enlace al PR.
+
+## Notas de implementación del backend
+
+Detalles que el contrato no fija y que el backend resolvió así (el dashboard puede depender de ellos):
+
+- Validación fallida → `400 { "error": "Mensaje en español" }` (primer error de validación).
+- `limit` mayor a 100 se recorta a 100 (no da error). `page` o `limit` menores a 1 → 400. `days` en clicks-per-day: por defecto 30, máximo 365.
+- Un admin que intenta borrarse a sí mismo o quitarse su propio rol → `400`.
+- API keys: una key ajena (para un `user`) → `403`; una URL ajena o borrada → `404`.
+- `POST /api/admin/urls` con código existente (incluso de una URL borrada) o reservado → `409`; con formato inválido → `400`.
+- `clicks-per-day` agrupa por día en UTC. `total_users` para un `user` normal es siempre 1.
+- Los correos se guardan y comparan en minúsculas. Las contraseñas deben tener entre 8 y 72 caracteres.
+- Cookie de sesión: se llama `session`.
