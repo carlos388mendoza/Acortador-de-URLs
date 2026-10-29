@@ -9,7 +9,7 @@ function run(command) {
 }
 
 if (existsSync('dashboard/package.json')) {
-  run('npm install --prefix dashboard')
+  run('npm install --prefix dashboard --include=dev --no-save')
   // El destino se fuerza desde aquí para no depender de la configuración de Vite del dashboard
   run('npm run build --prefix dashboard -- --outDir ../public/dashboard --emptyOutDir')
 } else {

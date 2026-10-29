@@ -19,20 +19,20 @@
     "@neondatabase/serverless": "^1.2.0",
     "@scalar/hono-api-reference": "^0.12.16",
     "@vercel/functions": "^3.10.4",
+    "@types/node": "^26.6.6",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.4",
     "hono": "^4.13.14",
     "nanoid": "^6.0.2",
+    "typescript": "^7.0.2",
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^26.6.6",
     "dotenv": "^18.0.9",
     "drizzle-kit": "^0.31.11",
     "pg": "^8.23.1",
     "png-to-ico": "^3.0.2",
     "sharp": "^0.35.5",
-    "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "tsx": "^4.23.15"
   }
 }
