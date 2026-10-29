@@ -2,6 +2,13 @@
 import { and, eq, isNull } from 'drizzle-orm'
 import { getDb, schema } from '../db'
 import { hashApiKey } from '../lib/api-keys'
+import {
+  anonymousUrlLimit,
+  apiKeyUrlLimit,
+  checkRateLimit,
+  sendRateLimited,
+} from '../lib/rate-limit'
+import { getClientIp } from '../lib/request'
 import { ErrorSchema } from '../lib/schemas'
 import { buildShortUrl, generateCode, isHttpUrl, toIso } from '../lib/utils'
 
@@ -43,7 +50,7 @@ const createUrl = createRoute({
   tags: ['API pública'],
   summary: 'Crear una URL corta',
   description:
-    'Opcional: con `Authorization: Bearer <api_key>` la URL queda asociada al dueño de la clave.',
+    'Opcional: con `Authorization: Bearer <api_key>` la URL queda asociada al dueño de la clave. Límites: 30 peticiones por minuto e IP sin clave válida y 120 por minuto y API key. Al superarlos devuelve 429 con `Retry-After`.',
 
   security: optionalBearer,
   request: {
@@ -53,6 +60,13 @@ const createUrl = createRoute({
     201: { content: { 'application/json': { schema: PublicUrlSchema } }, description: 'URL creada' },
     400: { content: { 'application/json': { schema: ErrorSchema } }, description: 'URL no válida' },
     401: { content: { 'application/json': { schema: ErrorSchema } }, description: 'API key inválida o desactivada' },
+    429: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Demasiadas solicitudes',
+      headers: z.object({
+        'Retry-After': z.string().openapi({ description: 'Segundos que faltan para poder reintentar' }),
+      }),
+    },
   },
 })
 
@@ -79,10 +93,14 @@ export const publicUrlsRouter = new OpenAPIHono({
 publicUrlsRouter.openapi(createUrl, async (c) => {
   const { url } = c.req.valid('json')
   const db = getDb()
+  const ip = getClientIp(c)
 
   // Sin header: URL anónima. Con header: debe ser una key activa, si no, 401
   let owner: { userId: number; apiKeyId: number } | null = null
+  let rateLimitKey = `url:ip:${ip}`
+  let rateLimit = anonymousUrlLimit()
   const authorization = c.req.header('authorization')
+
   if (authorization !== undefined) {
     const match = /^Bearer\s+(\S+)$/i.exec(authorization.trim())
     const [found] = match?.[1]
@@ -92,10 +110,22 @@ publicUrlsRouter.openapi(createUrl, async (c) => {
           .where(and(eq(schema.apiKeys.keyHash, await hashApiKey(match[1])), eq(schema.apiKeys.isActive, true)))
           .limit(1)
       : []
-    if (!found) return c.json({ error: 'API key inválida' }, 401)
+
+    if (!found) {
+      // Una key inválida consume el cupo anónimo de la IP: no sirve para saltarse el límite
+      const limited = await checkRateLimit(rateLimitKey, rateLimit)
+      if (!limited.allowed) return sendRateLimited(c, limited.retryAfter)
+      return c.json({ error: 'API key inválida' }, 401)
+    }
+
     owner = { userId: found.userId, apiKeyId: found.id }
+    rateLimitKey = `url:key:${found.id}`
+    rateLimit = apiKeyUrlLimit()
     await db.update(schema.apiKeys).set({ lastUsedAt: new Date() }).where(eq(schema.apiKeys.id, found.id))
   }
+
+  const limited = await checkRateLimit(rateLimitKey, rateLimit)
+  if (!limited.allowed) return sendRateLimited(c, limited.retryAfter)
 
   for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt++) {
     // onConflictDoNothing: si el código aleatorio ya existe, no falla y reintentamos con otro

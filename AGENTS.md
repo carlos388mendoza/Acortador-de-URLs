@@ -146,6 +146,8 @@ Para un `user` normal, las estadísticas se calculan solo con sus propias URLs.
 - `api_keys`: id, user_id, name, key_prefix, key_hash (único), is_active, last_used_at, created_at
 - `urls`: id, code (único), url, user_id, api_key_id, click_count, created_at, updated_at, deleted_at
 - `clicks`: id, url_id, clicked_at, referrer, user_agent
+- `login_attempts`: id, ip, email, failed_count, window_started_at, blocked_until, updated_at (único por ip + email)
+- `rate_limits`: id, key, count, window_started_at (único por key; una fila por IP o API key)
 
 ## Variables de entorno
 
@@ -155,6 +157,8 @@ Para un `user` normal, las estadísticas se calculan solo con sus propias URLs.
 - `BASE_URL`: dominio público (en local se deduce de la petición)
 - `JWT_SECRET`: cadena aleatoria larga
 - `ADMIN_EMAIL`, `ADMIN_PASSWORD`: solo para el script que crea el primer admin
+- `LOGIN_MAX_ATTEMPTS` (5), `LOGIN_WINDOW_MINUTES` (15): bloqueo de login
+- `URL_RATE_LIMIT_PER_MINUTE` (30), `API_KEY_RATE_LIMIT_PER_MINUTE` (120): límites de creación de URLs
 
 ## Branding
 
@@ -173,6 +177,18 @@ La carpeta `branding/` es la fuente de verdad de la imagen del proyecto:
 - `npm run branding` regenera todo a partir de `branding/logo-original.*` (usa `sharp` y `png-to-ico`, dependencias de desarrollo) y también `src/lib/branding-assets.ts`, que embebe el favicon y el logo para que el backend los sirva en Vercel.
 - El backend sirve `GET /favicon.ico` y `GET /branding/logo.png`. `/api/reference` (Scalar) usa el favicon y muestra el logo en la barra lateral.
 - El dashboard debe copiar los archivos de `branding/` a `dashboard/public/` para sus propios iconos y para el logo de los códigos QR.
+
+## Seguridad
+
+Los límites se aplican por IP (primera entrada de `x-forwarded-for`; si no hay, `x-real-ip`, `cf-connecting-ip` o el socket). En Vercel el proxy de la plataforma rellena esas cabeceras.
+
+- **Login**: 5 intentos fallidos para la misma pareja IP + correo dentro de 15 minutos bloquean nuevos intentos durante 15 minutos. Un login correcto borra el contador de esa pareja. Mientras está bloqueado se responde antes de comprobar la contraseña.
+- **Crear URL** (`POST /api/urls/new`): 30 peticiones por minuto e IP sin clave válida (las claves inválidas consumen este cupo) y 120 por minuto y API key válida. Los dos cupos son independientes.
+- Cualquier límite superado devuelve `429 { "error": "Demasiados intentos. Intenta de nuevo en unos minutos" }` con la cabecera `Retry-After` en segundos.
+- Los contadores viven en `login_attempts` y `rate_limits`; se limpian solos (de forma probabilística, dentro de una petición) pasados 24 h y 1 h respectivamente.
+- `hono/secure-headers` añade CSP, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, políticas de origen y HSTS solo en producción. La CSP permite explícitamente `cdn.jsdelivr.net`, `fonts.scalar.com` y estilos/scripts en línea para que Scalar siga funcionando.
+- El dashboard se sirve como archivo estático desde Vercel, así que su CSP y sus cabeceras están en `vercel.json` (misma política que la del backend). En local las aplica `src/dev.ts`.
+- Los cuatro límites son configurables con `LOGIN_MAX_ATTEMPTS`, `LOGIN_WINDOW_MINUTES`, `URL_RATE_LIMIT_PER_MINUTE` y `API_KEY_RATE_LIMIT_PER_MINUTE`.
 
 ## Dashboard
 
@@ -223,3 +239,5 @@ Detalles que el contrato no fija y que el backend resolvió así (el dashboard p
 - Cookie de sesión: se llama `session`.
 - `GET /api/admin/search`: `q` vacío o solo espacios → `400`; `limit` mayor a 10 → `400` (no se recorta). El orden es por fecha de creación descendente.
 - `PATCH /api/auth/me`: si se intenta cambiar el correo o la contraseña sin `current_password` o con una incorrecta → `401 { "error": "La contraseña actual es incorrecta" }`. Un body vacío o sin cambios devuelve `200` con el usuario actual.
+- Login: los 5 primeros fallos devuelven `401`; el sexto y los siguientes devuelven `429` hasta que expire el bloqueo. `Retry-After` siempre son segundos enteros.
+- Crear URL: las peticiones con una clave inválida consumen el cupo anónimo de la IP y luego devuelven `401` si aún les queda cupo. Una clave válida usa su propio cupo de 120/min, separado del de la IP.
