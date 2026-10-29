@@ -59,13 +59,14 @@ async function ensureUser(name: string, email: string): Promise<number> {
   return row.id
 }
 
-const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase()
+const proc = (globalThis as { process?: { env?: Record<string, string | undefined>; exit?: (code?: number) => never } }).process
+const adminEmail = proc?.env?.ADMIN_EMAIL?.trim().toLowerCase()
 const [admin] = adminEmail
   ? await db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.email, adminEmail)).limit(1)
   : []
 if (!admin) {
   console.error('No existe el admin. Ejecuta primero: npm run seed:admin')
-  process.exit(1)
+  proc?.exit?.(1)
 }
 
 const ownerIds = [admin.id, ...(await Promise.all(DEMO_USERS.map((u) => ensureUser(u.name, u.email))))]

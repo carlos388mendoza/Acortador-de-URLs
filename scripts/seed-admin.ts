@@ -1,12 +1,13 @@
 import { getDb, schema } from '../src/db'
 import { hashPassword } from '../src/lib/auth'
 
-const email = process.env.ADMIN_EMAIL?.trim().toLowerCase()
-const password = process.env.ADMIN_PASSWORD
+const proc = (globalThis as { process?: { env?: Record<string, string | undefined>; exit?: (code?: number) => never } }).process
+const email = proc?.env?.ADMIN_EMAIL?.trim().toLowerCase()
+const password = proc?.env?.ADMIN_PASSWORD
 
 if (!email || !password) {
   console.error('Faltan ADMIN_EMAIL o ADMIN_PASSWORD en .env')
-  process.exit(1)
+  proc?.exit?.(1)
 }
 
 // Crea el admin o, si el correo ya existe, actualiza su contraseña y lo deja como admin
