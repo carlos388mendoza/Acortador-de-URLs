@@ -25338,6 +25338,9 @@ var securityHeaders = secureHeaders({
   }
 });
 
+// src/index.ts
+import { readFileSync } from "node:fs";
+
 // node_modules/drizzle-orm/entity.js
 var entityKind = Symbol.for("drizzle:entityKind");
 var hasOwnEntityKind = Symbol.for("drizzle:hasOwnEntityKind");
@@ -41338,12 +41341,25 @@ api.route("/admin/users", adminUsersRouter);
 api.route("/admin/urls", adminUrlsRouter);
 api.route("/admin/stats", adminStatsRouter);
 api.route("/auth", authRouter);
+api.get("/skill", (c) => {
+  let content = "";
+  try {
+    content = readFileSync("skills/acortador-urls/SKILL.md", "utf8");
+  } catch {
+    try {
+      content = readFileSync("/var/task/skills/acortador-urls/SKILL.md", "utf8");
+    } catch {
+      return c.text("SKILL no disponible", 500);
+    }
+  }
+  return c.text(content, 200, { "Content-Type": "text/markdown; charset=utf-8" });
+});
 api.doc("/doc", {
   openapi: "3.0.0",
   info: {
     title: "Acortador de URLs",
     version: "1.0.0",
-    description: "API REST del acortador de URLs"
+    description: "API REST del acortador de URLs. SKILL para agentes: /api/skill"
   },
   servers: [{ url: "/api" }]
 });

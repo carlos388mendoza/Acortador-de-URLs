@@ -19,6 +19,7 @@ npm run dev                 # http://localhost:3000
 
 - Documentación interactiva (Scalar): `http://localhost:3000/api/reference`
 - Especificación OpenAPI: `http://localhost:3000/api/doc`
+- SKILL para agentes: `http://localhost:3000/api/skill` (o `skills/acortador-urls/SKILL.md` en el repo)
 - Dashboard (si ya está compilado en `public/dashboard`): `http://localhost:3000/dashboard/`
 
 ### Variables de entorno
@@ -73,4 +74,4 @@ vercel.json           Rewrites del fallback SPA de /dashboard
 - **Borrado suave:** las URLs se marcan con `deleted_at`; dejan de redirigir pero su código sigue ocupado.
 - **Clics:** se registran con `waitUntil` de `@vercel/functions`, sin hacer esperar a quien visita el enlace.
 - **Estadísticas:** `clicks-per-day` usa `generate_series` para que los días sin clics salgan con 0.
-- **Límites conocidos:** el login no tiene limitación de intentos (rate limiting).
+- **Rate limiting:** login (5 intentos por IP+correo en 15 min) y creación de URLs (30/min por IP sin key, 120/min por key válida). Respuesta 429 con `Retry-After`.
