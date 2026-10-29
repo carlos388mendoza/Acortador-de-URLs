@@ -55,18 +55,25 @@ export function UrlsPage() {
 
   return (
     <div className="grid min-w-0 gap-5">
-      <div className="flex min-w-0 flex-col gap-3 sm:flex-row">
-        <Input
-          aria-label="Buscar URLs"
-          value={search}
-          onChange={(event) => updateSearch(event.target.value)}
-          placeholder="Buscar por código o URL…"
-          className="min-w-0 flex-1"
-        />
-        <Button onClick={() => setEditing(null)}>
-          <Plus className="mr-2 size-4" /> Nueva URL
+      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-brand">
+            Enlaces
+          </p>
+          <h2 className="font-heading text-3xl font-bold sm:text-4xl">URLs</h2>
+        </div>
+        <Button className="h-11 rounded-xl" onClick={() => setEditing(null)}>
+          <Plus /> Nueva URL
         </Button>
       </div>
+
+      <Input
+        aria-label="Buscar URLs"
+        value={search}
+        onChange={(event) => updateSearch(event.target.value)}
+        placeholder="Buscar por código o URL…"
+        className="min-w-0 rounded-xl"
+      />
 
       {urls.isPending ? (
         <LoadingCards />

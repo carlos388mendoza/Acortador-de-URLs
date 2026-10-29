@@ -1,4 +1,13 @@
-import { Pencil, Trash2 } from "lucide-react";
+import {
+  Ban,
+  Calendar,
+  Hash,
+  History,
+  KeyRound,
+  Pencil,
+  Power,
+  UserRound,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,64 +17,76 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { relativeDate } from "@/lib/format";
 import type { ApiKey } from "@/types";
-
-type ApiKeyCardProps = {
-  apiKey: ApiKey;
-  onRename: (apiKey: ApiKey) => void;
-  onDelete: (apiKey: ApiKey) => void;
-  onToggle: (apiKey: ApiKey, isActive: boolean) => void;
-};
 
 export function ApiKeyCard({
   apiKey,
   onRename,
-  onDelete,
   onToggle,
-}: ApiKeyCardProps) {
+}: {
+  apiKey: ApiKey;
+  onRename: (apiKey: ApiKey) => void;
+  onToggle: (apiKey: ApiKey, isActive: boolean) => void;
+}) {
   return (
-    <Card className="min-w-0">
+    <Card className="min-w-0 rounded-2xl">
       <CardHeader className="flex-row items-start justify-between gap-2">
-        <CardTitle className="min-w-0 truncate text-base">
-          {apiKey.name}
-        </CardTitle>
-        <Badge variant={apiKey.is_active ? "default" : "secondary"}>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground">
+            <KeyRound className="size-4" />
+          </span>
+          <CardTitle className="min-w-0 truncate text-base">
+            {apiKey.name}
+          </CardTitle>
+        </div>
+        <Badge
+          className={
+            apiKey.is_active
+              ? "shrink-0 bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-950 dark:text-green-300"
+              : "shrink-0 bg-muted text-muted-foreground hover:bg-muted"
+          }
+        >
           {apiKey.is_active ? "Activa" : "Inactiva"}
         </Badge>
       </CardHeader>
-      <CardContent className="grid gap-3">
-        <code className="w-fit max-w-full truncate">
-          {apiKey.key_prefix}••••••••
-        </code>
-        <p className="text-sm text-muted-foreground">
-          Último uso: {relativeDate(apiKey.last_used_at)}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Dueño: {apiKey.owner.name}
-        </p>
-        <div className="flex items-center gap-2">
-          <Switch
-            checked={apiKey.is_active}
-            aria-label="Activar o desactivar API key"
-            onCheckedChange={(active) => onToggle(apiKey, active)}
-          />
-          <Label>Activa</Label>
+      <CardContent className="grid min-w-0 gap-3">
+        <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <Hash className="size-3.5" />
+            {apiKey.key_prefix}
+          </span>
+          <span className="inline-flex min-w-0 items-center gap-1">
+            <UserRound className="size-3.5 shrink-0" />
+            <span className="truncate">{apiKey.owner.name}</span>
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <History className="size-3.5" />
+            {apiKey.last_used_at ? relativeDate(apiKey.last_used_at) : "Nunca"}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Calendar className="size-3.5" />
+            {relativeDate(apiKey.created_at)}
+          </span>
         </div>
       </CardContent>
-      <CardFooter className="gap-2">
-        <Button size="sm" variant="outline" onClick={() => onRename(apiKey)}>
-          <Pencil className="mr-1 size-3" /> Renombrar
+      <CardFooter className="flex flex-wrap gap-1 border-t-0 bg-transparent">
+        <Button size="sm" variant="ghost" onClick={() => onRename(apiKey)}>
+          <Pencil /> Renombrar
         </Button>
         <Button
-          size="icon"
+          size="sm"
           variant="ghost"
-          aria-label="Desactivar API key"
-          onClick={() => onDelete(apiKey)}
+          className={
+            apiKey.is_active ? "text-destructive hover:text-destructive" : ""
+          }
+          aria-label={
+            apiKey.is_active ? "Desactivar API key" : "Activar API key"
+          }
+          onClick={() => onToggle(apiKey, !apiKey.is_active)}
         >
-          <Trash2 className="size-4" />
+          {apiKey.is_active ? <Ban /> : <Power />}
+          {apiKey.is_active ? "Desactivar" : "Activar"}
         </Button>
       </CardFooter>
     </Card>

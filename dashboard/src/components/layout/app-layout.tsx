@@ -1,34 +1,47 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import {
+  Link,
+  NavLink,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { LogOut, Menu, Search } from "lucide-react";
+import {
+  ChevronDown,
+  House,
+  Link2,
+  Menu,
+  Plus,
+  Search,
+  UserRound,
+} from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/api/client";
-import type { AdminUrl, ApiUserResponse, Page } from "@/types";
+import type { ApiUserResponse } from "@/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import { Toaster } from "@/components/ui/sonner";
+import { AccountPanel } from "./account-panel";
 import { CommandPalette } from "./command-palette";
 import { KeyboardShortcutsDialog } from "./keyboard-shortcuts-dialog";
 import { LogoutConfirmDialog } from "./logout-confirm-dialog";
 import { useKeyboardShortcuts } from "./keyboard-shortcuts";
 import { SideNavigation } from "./side-navigation";
 import { ThemeControl } from "./theme-control";
+
+type OpenLayer = "menu" | "palette" | "account" | "help" | "logout" | null;
 
 export function AppLayout() {
   const { data } = useQuery({
@@ -38,19 +51,19 @@ export function AppLayout() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const location = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const [searchMatches, setSearchMatches] = useState<AdminUrl[]>([]);
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
-  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(
+    () => window.matchMedia("(min-width: 1024px)").matches,
+  );
+  // Este único estado impide que menú, paleta y cuenta se tapen entre sí.
+  const [openLayer, setOpenLayer] = useState<OpenLayer>(null);
   const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
   const isAdmin = data?.user.role === "admin";
   const titleByPath: Record<string, string> = {
     "/": "Inicio",
     "/urls": "URLs",
     "/api-keys": "API keys",
-    "/users": "Personas",
+    "/users": "Usuarios",
+    "/admin": "Administración",
     "/profile": "Mi perfil",
   };
   const title = titleByPath[location.pathname] ?? "No encontrado";
@@ -62,52 +75,58 @@ export function AppLayout() {
       .slice(0, 2)
       .toUpperCase() ?? "AU";
 
-  const navigateTo = useCallback((path: string) => navigate(path), [navigate]);
-  const openPalette = useCallback(() => setPaletteOpen(true), []);
-  const openHelp = useCallback(() => setHelpOpen(true), []);
-  const closeDialogs = useCallback(() => {
-    setPaletteOpen(false);
-    setHelpOpen(false);
-    setLogoutOpen(false);
+  const openPalette = useCallback(() => setOpenLayer("palette"), []);
+  const togglePalette = useCallback(
+    () => setOpenLayer((current) => (current === "palette" ? null : "palette")),
+    [],
+  );
+  const openHelp = useCallback(() => setOpenLayer("help"), []);
+  const closeDialogs = useCallback(() => setOpenLayer(null), []);
+  const requestLogout = useCallback(() => {
+    setOpenLayer(null);
+    // Deja terminar el cierre del panel o la paleta antes de mostrar el diálogo.
+    window.setTimeout(() => setOpenLayer("logout"), 250);
   }, []);
 
   useKeyboardShortcuts({
     navigate,
-    openPalette,
+    openPalette: togglePalette,
     openHelp,
     closeDialogs,
   });
 
   useEffect(() => {
-    document.title = `${title} | Acortador`;
+    document.title = `${title} | Acortador de URLs`;
   }, [title]);
 
   useEffect(() => {
-    const term = search.trim();
-    const timer = window.setTimeout(
-      () => {
-        if (!term) {
-          setSearchMatches([]);
-          return;
-        }
+    const desktopQuery = window.matchMedia("(min-width: 1024px)");
+    const updateLayout = (event: MediaQueryListEvent) =>
+      setIsDesktop(event.matches);
+    desktopQuery.addEventListener("change", updateLayout);
+    return () => desktopQuery.removeEventListener("change", updateLayout);
+  }, []);
 
-        void api<Page<AdminUrl>>(
-          `/api/admin/urls?page=1&limit=10&search=${encodeURIComponent(term)}`,
-        )
-          .then((result) => setSearchMatches(result.data))
-          .catch(() => setSearchMatches([]));
-      },
-      term ? 250 : 0,
+  const createUrl = () => {
+    setOpenLayer(null);
+    navigate("/urls");
+    window.setTimeout(() => window.dispatchEvent(new Event("new-url")), 100);
+  };
+
+  const createKey = () => {
+    setOpenLayer(null);
+    navigate("/api-keys");
+    window.setTimeout(
+      () => window.dispatchEvent(new Event("new-api-key")),
+      100,
     );
-
-    return () => window.clearTimeout(timer);
-  }, [search]);
+  };
 
   const logout = async () => {
     try {
       await api("/api/auth/logout", { method: "POST" });
       queryClient.removeQueries({ queryKey: ["me"] });
-      setLogoutOpen(false);
+      setOpenLayer(null);
       navigate("/login", { replace: true });
     } catch (error) {
       toast.error(
@@ -116,175 +135,281 @@ export function AppLayout() {
     }
   };
 
-  const openProfile = () => navigateTo("/profile");
-  const userMenu = (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Abrir opciones de cuenta"
-          className="md:hidden"
-        >
-          <Avatar className="size-8">
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={openProfile}>Mi perfil</DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() =>
-            document
-              .querySelector<HTMLButtonElement>('[aria-label="Cambiar tema"]')
-              ?.click()
-          }
-        >
-          Cambiar tema
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => setLogoutOpen(true)}>
-          Cerrar sesión
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+  const goToProfile = () => {
+    setOpenLayer(null);
+    navigate("/profile");
+  };
+  const sidebarProps = {
+    isAdmin: Boolean(isAdmin),
+    isMac,
+    onNavigate: () => setOpenLayer(null),
+    onSearch: openPalette,
+    onCreateUrl: createUrl,
+  };
 
   return (
-    <div className="min-h-screen bg-muted/30 text-foreground">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r bg-background p-5 md:flex">
-        <Link to="/" className="mb-8 flex items-center gap-3 font-semibold">
+    <div className="min-h-screen bg-background text-foreground">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[264px] flex-col border-r border-border bg-background px-4 py-5 lg:flex">
+        <Link to="/" className="mb-7 flex items-center gap-3 px-2 font-bold">
           <img
             src="/dashboard/logo.png"
             alt=""
-            className="size-10 rounded-full"
+            className="size-10 rounded-full object-cover"
           />
-          <span>Acortador</span>
+          <span className="font-heading text-lg">Acortador de URLs</span>
         </Link>
-        <SideNavigation isAdmin={isAdmin} />
-        <div className="mt-auto space-y-4">
-          <ThemeControl />
-          <div className="flex items-center gap-2 border-t pt-4">
-            <Avatar className="size-9">
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">
-                {data?.user.name ?? "Cuenta"}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {data?.user.email}
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Cerrar sesión"
-              onClick={() => setLogoutOpen(true)}
+        <SideNavigation {...sidebarProps} />
+        <div className="mt-5 border-t border-border pt-4">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={openPalette}
+            className="mb-3 h-10 w-full justify-start gap-2 rounded-xl border border-border bg-card text-muted-foreground"
+          >
+            <Search className="size-4" />
+            <span className="flex-1 text-left">Buscar URLs</span>
+            <span className="flex items-center gap-1">
+              <kbd className="rounded-md bg-muted px-1.5 py-0.5 text-[10px]">
+                {isMac ? "⌘" : "Ctrl"}
+              </kbd>
+              <kbd className="rounded-md bg-muted px-1.5 py-0.5 text-[10px]">
+                K
+              </kbd>
+            </span>
+          </Button>
+          <DropdownMenu
+            open={openLayer === "account" && isDesktop}
+            onOpenChange={(open) =>
+              setOpenLayer((current) =>
+                open ? "account" : current === "account" ? null : current,
+              )
+            }
+          >
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-auto w-full justify-start gap-3 rounded-xl p-2"
+                aria-label="Abrir menú de cuenta"
+              >
+                <Avatar className="size-10">
+                  <AvatarFallback className="bg-stone-900 font-bold text-white dark:bg-black">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="min-w-0 flex-1 text-left">
+                  <span className="block truncate text-sm font-bold">
+                    {data?.user.name ?? "Cuenta"}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {data?.user.role}
+                  </span>
+                </span>
+                <ChevronDown className="size-4 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              side="top"
+              className="w-80 rounded-2xl p-0"
             >
-              <LogOut className="size-4" />
-            </Button>
-          </div>
+              <AccountPanel
+                user={data?.user}
+                onProfile={goToProfile}
+                onLogout={requestLogout}
+              />
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 
-      <div className="min-w-0 md:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 min-w-0 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur md:px-8">
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden"
-                aria-label="Abrir menú"
-              >
-                <Menu className="size-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72">
-              <SheetHeader>
-                <SheetTitle className="flex items-center gap-2">
-                  <img
-                    src="/dashboard/logo.png"
-                    alt=""
-                    className="size-8 rounded-full"
-                  />
-                  Acortador
-                </SheetTitle>
-              </SheetHeader>
-              <div className="mt-6">
-                <SideNavigation
-                  isAdmin={isAdmin}
-                  onNavigate={() => setMobileMenuOpen(false)}
-                />
-              </div>
-            </SheetContent>
-          </Sheet>
-
-          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold">
-            {title}
-          </h1>
-          <div className="relative hidden w-full max-w-sm sm:block">
-            <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar URLs..."
-              aria-label="Buscar URLs"
-              className="pl-9"
+      <div className="min-w-0 lg:pl-[264px]">
+        <header className="fixed inset-x-0 top-0 z-20 flex h-16 min-w-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur lg:left-[264px] lg:px-8">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            aria-label="Abrir menú lateral"
+            onClick={() => setOpenLayer("menu")}
+          >
+            <Menu className="size-5" />
+          </Button>
+          <Link to="/" className="flex shrink-0 items-center gap-2 lg:hidden">
+            <img
+              src="/dashboard/logo.png"
+              alt=""
+              className="size-8 rounded-full"
             />
-            {search && (
-              <div className="absolute top-11 z-30 max-h-64 w-full overflow-auto rounded-lg border bg-popover p-2 shadow-lg">
-                {searchMatches.length ? (
-                  searchMatches.map((url) => (
-                    <button
-                      key={url.id}
-                      className="block w-full truncate rounded p-2 text-left text-sm hover:bg-muted"
-                      onClick={() => {
-                        navigate(
-                          `/urls?search=${encodeURIComponent(url.code)}`,
-                        );
-                        setSearch("");
-                      }}
-                    >
-                      {url.code} · {url.url}
-                    </button>
-                  ))
-                ) : (
-                  <p className="p-2 text-sm text-muted-foreground">
-                    No se encontraron URLs.
-                  </p>
-                )}
-              </div>
-            )}
+            <span className="font-heading text-sm font-bold">Acortador</span>
+          </Link>
+          <div className="hidden min-w-0 flex-1 items-center gap-2 lg:flex">
+            <House className="size-4 text-brand" />
+            <h1 className="truncate font-heading text-xl font-bold">{title}</h1>
           </div>
-          <CommandPalette
-            open={paletteOpen}
-            onOpenChange={setPaletteOpen}
-            isMac={isMac}
-            isAdmin={isAdmin}
-            onNavigate={navigateTo}
-            onRequestLogout={() => setLogoutOpen(true)}
-          />
-          {userMenu}
+          <span className="min-w-0 flex-1 truncate font-heading text-sm font-bold lg:hidden">
+            {title}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            className="ml-auto h-10 justify-start gap-2 rounded-xl text-muted-foreground lg:hidden"
+            onClick={openPalette}
+            aria-label="Buscar en el dashboard"
+          >
+            <Search className="size-4" />
+            <span className="hidden min-[380px]:inline">Buscar</span>
+          </Button>
+          <div className="hidden lg:block">
+            <Button variant="outline" onClick={openPalette}>
+              <Search /> Buscar
+            </Button>
+          </div>
         </header>
 
-        <main className="mx-auto min-w-0 max-w-7xl p-4 md:p-8">
+        <main className="mx-auto min-w-0 max-w-[1500px] px-4 pb-28 pt-20 sm:px-6 lg:px-8 lg:pb-10 lg:pt-24">
           <Outlet />
         </main>
       </div>
 
+      <Sheet
+        open={openLayer === "menu" && !isDesktop}
+        onOpenChange={(open) =>
+          setOpenLayer((current) =>
+            open ? "menu" : current === "menu" ? null : current,
+          )
+        }
+      >
+        <SheetContent
+          side="left"
+          className="w-[min(88vw,320px)] border-r border-border bg-background p-4"
+          aria-label="Menú lateral"
+        >
+          <SheetHeader className="mb-6">
+            <SheetTitle className="flex items-center gap-3 font-heading text-lg">
+              <img
+                src="/dashboard/logo.png"
+                alt=""
+                className="size-9 rounded-full"
+              />
+              Acortador de URLs
+            </SheetTitle>
+          </SheetHeader>
+          <SideNavigation {...sidebarProps} />
+          <div className="mt-5 border-t border-border pt-4">
+            <ThemeControl />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet
+        open={openLayer === "account" && !isDesktop}
+        onOpenChange={(open) =>
+          setOpenLayer((current) =>
+            open ? "account" : current === "account" ? null : current,
+          )
+        }
+      >
+        <SheetContent
+          side="bottom"
+          className="max-h-[85dvh] rounded-t-3xl p-0 pb-[env(safe-area-inset-bottom)] lg:hidden"
+          aria-label="Cuenta"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>Cuenta</SheetTitle>
+          </SheetHeader>
+          <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-muted-foreground/30" />
+          <AccountPanel
+            user={data?.user}
+            onProfile={goToProfile}
+            onLogout={requestLogout}
+          />
+        </SheetContent>
+      </Sheet>
+
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 items-end border-t border-border bg-card/95 px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-4px_20px_rgb(28_25_23/6%)] backdrop-blur lg:hidden"
+        aria-label="Navegación móvil"
+      >
+        <MobileNavItem to="/" label="Inicio" icon={House} />
+        <button
+          type="button"
+          onClick={openPalette}
+          className="grid min-h-12 place-items-center gap-0.5 rounded-xl text-xs text-muted-foreground"
+          aria-label="Buscar"
+        >
+          <Search className="size-5" />
+          Buscar
+        </button>
+        <button
+          type="button"
+          onClick={createUrl}
+          className="mx-auto -mt-5 grid min-h-[3.75rem] min-w-[3.75rem] grid-rows-[1fr_auto] place-items-center rounded-full bg-stone-900 px-2 py-2 text-white shadow-lg hover:bg-stone-800 dark:bg-black dark:hover:bg-stone-900"
+          aria-label="Nueva URL"
+        >
+          <Plus className="size-6 self-end" />
+          <span className="text-[10px] font-semibold leading-none">Nuevo</span>
+        </button>
+        <MobileNavItem to="/urls" label="URLs" icon={Link2} />
+        <button
+          type="button"
+          onClick={() => setOpenLayer("account")}
+          className={`grid min-h-12 place-items-center gap-0.5 rounded-xl text-xs ${openLayer === "account" ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}
+          aria-label="Cuenta"
+        >
+          <UserRound className="size-5" />
+          Cuenta
+        </button>
+      </nav>
+
+      <CommandPalette
+        open={openLayer === "palette"}
+        onOpenChange={(open) =>
+          setOpenLayer((current) =>
+            open ? "palette" : current === "palette" ? null : current,
+          )
+        }
+        isMac={isMac}
+        isAdmin={Boolean(isAdmin)}
+        onNavigate={navigate}
+        onRequestLogout={requestLogout}
+        onCreateUrl={createUrl}
+        onCreateKey={createKey}
+      />
       <LogoutConfirmDialog
-        open={logoutOpen}
-        onOpenChange={setLogoutOpen}
+        open={openLayer === "logout"}
+        onOpenChange={(open) => setOpenLayer(open ? "logout" : null)}
         onConfirm={() => void logout()}
       />
       <KeyboardShortcutsDialog
-        open={helpOpen}
-        onOpenChange={setHelpOpen}
+        open={openLayer === "help"}
+        onOpenChange={(open) => setOpenLayer(open ? "help" : null)}
         isMac={isMac}
       />
       <Toaster richColors position="top-right" />
     </div>
+  );
+}
+
+function MobileNavItem({
+  to,
+  label,
+  icon: Icon,
+}: {
+  to: string;
+  label: string;
+  icon: typeof House;
+}) {
+  return (
+    <NavLink
+      to={to}
+      end={to === "/"}
+      className={({ isActive }) =>
+        `grid min-h-12 place-items-center gap-0.5 rounded-xl text-xs ${isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`
+      }
+    >
+      <Icon className="size-5" />
+      {label}
+    </NavLink>
   );
 }

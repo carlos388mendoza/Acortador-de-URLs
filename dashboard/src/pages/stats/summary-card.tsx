@@ -17,7 +17,7 @@ export function SummaryCard({
           <p className="truncate text-sm text-muted-foreground">{label}</p>
           <p className="mt-2 text-2xl font-bold">{value}</p>
         </div>
-        <div className="rounded-lg bg-primary/10 p-3 text-primary">
+        <div className="rounded-2xl bg-accent p-3 text-accent-foreground">
           <Icon className="size-5" />
         </div>
       </CardContent>

@@ -37,8 +37,8 @@ export function KeyboardShortcutsDialog({
             <Kbd>N</Kbd> Crear URL
           </p>
           <p>
-            <Kbd>G</Kbd> y <Kbd>H</Kbd> Inicio · <Kbd>U</Kbd> URLs ·{" "}
-            <Kbd>K</Kbd> API keys · <Kbd>P</Kbd> Personas
+            <Kbd>G</Kbd> y <Kbd>H</Kbd> Inicio · <Kbd>L</Kbd> URLs ·{" "}
+            <Kbd>K</Kbd> API keys · <Kbd>U</Kbd> Usuarios
           </p>
           <p>
             <Kbd>?</Kbd> Mostrar ayuda · <Kbd>Esc</Kbd> Cerrar

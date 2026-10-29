@@ -36,7 +36,10 @@ export function ConfirmDeleteDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={() => void onConfirm()}>
+          <AlertDialogAction
+            className="bg-destructive text-white hover:bg-destructive/85"
+            onClick={() => void onConfirm()}
+          >
             Borrar
           </AlertDialogAction>
         </AlertDialogFooter>

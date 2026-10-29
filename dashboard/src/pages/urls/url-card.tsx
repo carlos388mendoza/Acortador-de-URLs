@@ -1,4 +1,14 @@
-import { Copy, ExternalLink, Pencil, QrCode, Trash2 } from "lucide-react";
+import {
+  Calendar,
+  Copy,
+  ExternalLink,
+  Link2,
+  MousePointerClick,
+  Pencil,
+  QrCode,
+  Trash2,
+  UserRound,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { AdminUrl } from "@/types";
 import { relativeDate } from "@/lib/format";
@@ -20,6 +30,13 @@ type UrlCardProps = {
 };
 
 export function UrlCard({ url, onEdit, onDelete, onQr }: UrlCardProps) {
+  const domain = (() => {
+    try {
+      return new URL(url.url).hostname;
+    } catch {
+      return url.url;
+    }
+  })();
   const copyShortUrl = async () => {
     try {
       await navigator.clipboard.writeText(url.short_url);
@@ -32,14 +49,25 @@ export function UrlCard({ url, onEdit, onDelete, onQr }: UrlCardProps) {
   return (
     <Card className="min-w-0 overflow-hidden">
       <CardHeader className="flex-row items-start justify-between gap-2">
-        <CardTitle className="min-w-0 truncate text-base">
-          /{url.code}
-        </CardTitle>
-        <Badge variant="secondary">{url.click_count} clics</Badge>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground">
+            <Link2 className="size-4" />
+          </span>
+          <CardTitle className="min-w-0 truncate text-base">
+            /{url.code}
+          </CardTitle>
+        </div>
+        <Badge className="shrink-0 bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-950 dark:text-green-300">
+          Activa
+        </Badge>
       </CardHeader>
       <CardContent className="grid min-w-0 gap-3">
-        <p className="truncate text-sm text-muted-foreground" title={url.url}>
-          {url.url}
+        <p
+          className="flex min-w-0 items-center gap-2 truncate text-sm text-muted-foreground"
+          title={url.url}
+        >
+          <ExternalLink className="size-3.5 shrink-0" />
+          <span className="truncate">{domain}</span>
         </p>
         <a
           href={url.short_url}
@@ -50,38 +78,58 @@ export function UrlCard({ url, onEdit, onDelete, onQr }: UrlCardProps) {
           <span className="truncate">{url.short_url}</span>
           <ExternalLink className="size-3 shrink-0" />
         </a>
-        <p className="text-xs text-muted-foreground">
-          Creada {relativeDate(url.created_at)} ·{" "}
-          {url.creator?.name ?? "Sin creador"}
-        </p>
+        <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <MousePointerClick className="size-3.5" />
+            {url.click_count} clics
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Calendar className="size-3.5" />
+            {relativeDate(url.created_at)}
+          </span>
+          <span className="inline-flex min-w-0 items-center gap-1">
+            <UserRound className="size-3.5 shrink-0" />
+            <span className="truncate">
+              {url.creator?.name ?? "Sin creador"}
+            </span>
+          </span>
+        </div>
       </CardContent>
-      <CardFooter className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" onClick={() => void copyShortUrl()}>
-          <Copy className="mr-1 size-3" /> Copiar
+      <CardFooter className="flex flex-wrap gap-1 border-t-0 bg-transparent">
+        <Button size="sm" variant="ghost" onClick={() => void copyShortUrl()}>
+          <Copy /> Copiar
         </Button>
         <Button
           size="sm"
-          variant="outline"
+          variant="ghost"
+          onClick={() =>
+            window.open(url.short_url, "_blank", "noopener,noreferrer")
+          }
+        >
+          <ExternalLink /> Abrir
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
           aria-label="Generar QR"
           onClick={() => onQr(url)}
         >
-          <QrCode className="mr-1 size-3" /> QR
+          <QrCode /> QR
         </Button>
         <Button
-          size="icon"
           variant="ghost"
           aria-label="Editar URL"
           onClick={() => onEdit(url)}
         >
-          <Pencil className="size-4" />
+          <Pencil /> Editar
         </Button>
         <Button
-          size="icon"
           variant="ghost"
+          className="text-destructive hover:text-destructive"
           aria-label="Borrar URL"
           onClick={() => onDelete(url)}
         >
-          <Trash2 className="size-4" />
+          <Trash2 /> Eliminar
         </Button>
       </CardFooter>
     </Card>

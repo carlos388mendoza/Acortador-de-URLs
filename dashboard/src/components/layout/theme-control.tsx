@@ -1,22 +1,40 @@
-import { Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useDashboardTheme } from "./theme-provider";
+import { useDashboardTheme, type Theme } from "./theme-provider";
+
+const options: { value: Theme; label: string; icon: typeof Sun }[] = [
+  { value: "light", label: "Claro", icon: Sun },
+  { value: "dark", label: "Oscuro", icon: Moon },
+  { value: "system", label: "Automático", icon: Monitor },
+];
 
 export function ThemeControl() {
-  const { theme, cycleTheme } = useDashboardTheme();
-  const label =
-    theme === "system" ? "Sistema" : theme === "dark" ? "Oscuro" : "Claro";
+  const { theme, setTheme } = useDashboardTheme();
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      aria-label="Cambiar tema"
-      onClick={cycleTheme}
+    <div
+      className="grid grid-cols-3 gap-1 rounded-xl bg-muted p-1"
+      aria-label="Tema"
     >
-      <Sun className="size-4 dark:hidden" />
-      <Moon className="hidden size-4 dark:block" />
-      <span className="ml-2">Tema: {label}</span>
-    </Button>
+      {options.map(({ value, label, icon: Icon }) => (
+        <Button
+          key={value}
+          type="button"
+          size="sm"
+          variant="ghost"
+          aria-label={`Tema ${label}`}
+          aria-pressed={theme === value}
+          onClick={() => setTheme(value)}
+          className={`h-9 flex-col gap-0.5 px-1 text-[11px] ${
+            theme === value
+              ? "bg-card text-foreground shadow-sm hover:bg-card"
+              : "text-muted-foreground"
+          }`}
+        >
+          <Icon className="size-3.5" />
+          {label}
+        </Button>
+      ))}
+    </div>
   );
 }

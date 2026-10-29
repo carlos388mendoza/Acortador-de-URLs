@@ -1,8 +1,22 @@
 import { useEffect, useState } from "react";
-import { Command as CommandIcon } from "lucide-react";
+import {
+  BookOpen,
+  House,
+  KeyRound,
+  Link2,
+  LogOut,
+  Moon,
+  Plus,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Sun,
+  Monitor,
+  UserRound,
+  Users,
+} from "lucide-react";
 import { api } from "@/api/client";
 import type { AdminUrl, ApiKey, User } from "@/types";
-import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import {
   Command,
@@ -12,15 +26,8 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-  CommandShortcut,
 } from "@/components/ui/command";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { useDashboardTheme } from "./theme-provider";
-import { getVisibleNavItems } from "./nav-items";
+import { useDashboardTheme, type Theme } from "./theme-provider";
 
 type SearchResults = {
   urls: AdminUrl[];
@@ -35,11 +42,18 @@ type CommandPaletteProps = {
   isAdmin: boolean;
   onNavigate: (path: string) => void;
   onRequestLogout: () => void;
+  onCreateUrl: () => void;
+  onCreateKey: () => void;
 };
 
 const emptyResults: SearchResults = { urls: [], users: [], api_keys: [] };
+const themeOptions: { value: Theme; label: string; icon: typeof Sun }[] = [
+  { value: "light", label: "Claro", icon: Sun },
+  { value: "dark", label: "Oscuro", icon: Moon },
+  { value: "system", label: "Automático", icon: Monitor },
+];
 
-/** Reúne navegación y búsqueda del endpoint global documentado en AGENTS.md. */
+/** Mantiene búsqueda, navegación y acciones en un solo punto accesible. */
 export function CommandPalette({
   open,
   onOpenChange,
@@ -47,30 +61,26 @@ export function CommandPalette({
   isAdmin,
   onNavigate,
   onRequestLogout,
+  onCreateUrl,
+  onCreateKey,
 }: CommandPaletteProps) {
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<SearchResults>(emptyResults);
-  const { cycleTheme } = useDashboardTheme();
-  const navItems = getVisibleNavItems(isAdmin);
+  const { theme, setTheme } = useDashboardTheme();
 
   useEffect(() => {
     const term = search.trim();
-    const timer = window.setTimeout(
-      () => {
-        if (!term) {
-          setResults(emptyResults);
-          return;
-        }
+    const timer = window.setTimeout(() => {
+      if (!term) {
+        setResults(emptyResults);
+        return;
+      }
 
-        void api<SearchResults>(
-          `/api/admin/search?q=${encodeURIComponent(term)}`,
-        )
-          .then(setResults)
-          .catch(() => setResults(emptyResults));
-      },
-      term ? 250 : 0,
-    );
-
+      // Espera a que el usuario termine de escribir antes de consultar la API.
+      void api<SearchResults>("/api/admin/search?q=" + encodeURIComponent(term))
+        .then(setResults)
+        .catch(() => setResults(emptyResults));
+    }, 250);
     return () => window.clearTimeout(timer);
   }, [search]);
 
@@ -78,118 +88,219 @@ export function CommandPalette({
     onNavigate(path);
     onOpenChange(false);
   };
-
-  const createUrl = () => {
-    navigate("/urls");
-    window.setTimeout(() => window.dispatchEvent(new Event("new-url")), 100);
-  };
-
-  const createApiKey = () => {
-    navigate("/api-keys");
-    window.setTimeout(
-      () => window.dispatchEvent(new Event("new-api-key")),
-      100,
-    );
+  const openExternal = (path: string) => {
+    window.open(path, "_blank", "noopener,noreferrer");
+    onOpenChange(false);
   };
 
   return (
-    <>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="hidden lg:inline-flex"
-            onClick={() => onOpenChange(true)}
-          >
-            <CommandIcon className="mr-2 size-4" />
-            {isMac ? "⌘" : "Ctrl"} <Kbd className="ml-1">K</Kbd>
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Abre la paleta de comandos</TooltipContent>
-      </Tooltip>
-
-      <CommandDialog
-        open={open}
-        onOpenChange={onOpenChange}
-        title="Paleta de comandos"
-        description="Buscar páginas y acciones"
-      >
-        <Command>
+    <CommandDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Buscar en el dashboard"
+      description="Navega, busca registros y ejecuta acciones"
+      className="top-2 h-[calc(100dvh-1rem)] max-w-[calc(100%-1rem)] translate-y-0 rounded-2xl p-2 sm:top-1/2 sm:h-auto sm:max-h-[min(82vh,720px)] sm:max-w-2xl sm:-translate-y-1/2"
+    >
+      <Command shouldFilter>
+        <div className="flex items-center gap-2 border-b px-3 py-3">
+          <Search className="size-5 shrink-0 text-muted-foreground" />
           <CommandInput
-            placeholder="Escribe una página o acción…"
+            placeholder="Busca URLs, usuarios, keys o acciones..."
             value={search}
             onValueChange={setSearch}
+            className="h-10 text-base"
           />
-          <CommandList>
-            <CommandEmpty>No hay resultados.</CommandEmpty>
-            <CommandGroup heading="Páginas">
-              {navItems.map((item) => (
-                <CommandItem
-                  key={item.to}
-                  value={item.label}
-                  onSelect={() => navigate(item.to)}
-                >
-                  {item.label}
-                  <CommandShortcut>Ir</CommandShortcut>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-            <CommandGroup heading="Acciones">
-              <CommandItem onSelect={createUrl}>
-                Nueva URL <CommandShortcut>N</CommandShortcut>
-              </CommandItem>
-              <CommandItem onSelect={createApiKey}>Nueva API key</CommandItem>
-              <CommandItem onSelect={cycleTheme}>Cambiar tema</CommandItem>
+          <Kbd className="shrink-0">Esc</Kbd>
+        </div>
+        <CommandList className="max-h-none flex-1 px-1 pb-2 sm:max-h-[min(60vh,560px)]">
+          <CommandEmpty>No encontramos coincidencias.</CommandEmpty>
+          <CommandGroup heading="Acciones">
+            <CommandItem value="Nueva URL crear enlace" onSelect={onCreateUrl}>
+              <Plus className="text-brand" />
+              <span>Nueva URL</span>
+              <span className="ml-auto text-xs text-muted-foreground">
+                Acción
+              </span>
+            </CommandItem>
+            <CommandItem
+              value="Nueva API key crear llave"
+              onSelect={onCreateKey}
+            >
+              <KeyRound className="text-brand" />
+              <span>Nueva API key</span>
+              <span className="ml-auto text-xs text-muted-foreground">
+                Acción
+              </span>
+            </CommandItem>
+            {themeOptions.map(({ value, label, icon: Icon }) => (
               <CommandItem
-                onSelect={() => {
-                  onOpenChange(false);
-                  onRequestLogout();
-                }}
+                key={value}
+                value={`Tema ${label}`}
+                onSelect={() => setTheme(value)}
               >
-                Cerrar sesión
+                <Icon className="text-brand" />
+                <span className="flex flex-col">
+                  <span>Tema: {label}</span>
+                  {theme === value && (
+                    <span className="text-xs text-muted-foreground">
+                      Actual
+                    </span>
+                  )}
+                </span>
               </CommandItem>
-            </CommandGroup>
-            {search.trim() && (
+            ))}
+            <CommandItem
+              value="Cerrar sesión salir"
+              onSelect={onRequestLogout}
+              className="text-destructive data-selected:text-destructive"
+            >
+              <LogOut />
+              <span>Cerrar sesión</span>
+              <span className="ml-auto text-xs text-muted-foreground">
+                Acción
+              </span>
+            </CommandItem>
+          </CommandGroup>
+
+          <CommandGroup heading="Ir a">
+            <PaletteLink
+              icon={House}
+              label="Inicio"
+              subtitle="Página"
+              onSelect={() => navigate("/")}
+            />
+            <PaletteLink
+              icon={Link2}
+              label="URLs"
+              subtitle="Página"
+              onSelect={() => navigate("/urls")}
+            />
+            <PaletteLink
+              icon={KeyRound}
+              label="API keys"
+              subtitle="Desarrolladores"
+              onSelect={() => navigate("/api-keys")}
+            />
+            {isAdmin && (
               <>
-                <CommandGroup heading="URLs">
-                  {results.urls.map((url) => (
-                    <CommandItem
-                      key={url.id}
-                      value={`${url.code} ${url.url}`}
-                      onSelect={() => navigate("/urls")}
-                    >
-                      {url.code} · {url.url}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-                <CommandGroup heading="Usuarios">
-                  {results.users.map((user) => (
-                    <CommandItem
-                      key={user.id}
-                      value={`${user.name} ${user.email}`}
-                      onSelect={() => navigate("/users")}
-                    >
-                      {user.name}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-                <CommandGroup heading="Keys">
-                  {results.api_keys.map((key) => (
-                    <CommandItem
-                      key={key.id}
-                      value={`${key.name} ${key.key_prefix}`}
-                      onSelect={() => navigate("/api-keys")}
-                    >
-                      {key.name} · {key.key_prefix}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
+                <PaletteLink
+                  icon={Users}
+                  label="Usuarios"
+                  subtitle="Administración"
+                  onSelect={() => navigate("/users")}
+                />
+                <PaletteLink
+                  icon={ShieldCheck}
+                  label="Administración"
+                  subtitle="Administración"
+                  onSelect={() => navigate("/admin")}
+                />
               </>
             )}
-          </CommandList>
-        </Command>
-      </CommandDialog>
-    </>
+            <PaletteLink
+              icon={UserRound}
+              label="Mi perfil"
+              subtitle="Página"
+              onSelect={() => navigate("/profile")}
+            />
+            <PaletteLink
+              icon={BookOpen}
+              label="Documentación API"
+              subtitle="Desarrolladores"
+              onSelect={() => openExternal("/api/reference")}
+            />
+            <PaletteLink
+              icon={Sparkles}
+              label="SKILL"
+              subtitle="Desarrolladores"
+              onSelect={() => openExternal("/api/skill")}
+            />
+          </CommandGroup>
+
+          {search.trim() && (
+            <>
+              <CommandGroup heading="URLs">
+                {results.urls.map((url) => (
+                  <CommandItem
+                    key={url.id}
+                    value={url.code + " " + url.url}
+                    onSelect={() =>
+                      navigate("/urls?search=" + encodeURIComponent(url.code))
+                    }
+                  >
+                    <Link2 />
+                    <span className="min-w-0 truncate">
+                      {url.code} · {url.url}
+                    </span>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      URL
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+              <CommandGroup heading="Usuarios">
+                {results.users.map((user) => (
+                  <CommandItem
+                    key={user.id}
+                    value={user.name + " " + user.email}
+                    onSelect={() => navigate("/users")}
+                  >
+                    <Users />
+                    <span className="min-w-0 truncate">
+                      {user.name} · {user.email}
+                    </span>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      Usuario
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+              <CommandGroup heading="API keys">
+                {results.api_keys.map((key) => (
+                  <CommandItem
+                    key={key.id}
+                    value={key.name + " " + key.key_prefix}
+                    onSelect={() => navigate("/api-keys")}
+                  >
+                    <KeyRound />
+                    <span className="min-w-0 truncate">
+                      {key.name} · {key.key_prefix}
+                    </span>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      Key
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </>
+          )}
+        </CommandList>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t px-3 py-2 text-[11px] text-muted-foreground">
+          <span>↑ ↓ para moverte</span>
+          <span>Enter para abrir</span>
+          <span>{isMac ? "⌘K" : "Ctrl+K"} abre y cierra</span>
+        </div>
+      </Command>
+    </CommandDialog>
+  );
+}
+
+function PaletteLink({
+  icon: Icon,
+  label,
+  subtitle,
+  onSelect,
+}: {
+  icon: typeof House;
+  label: string;
+  subtitle: string;
+  onSelect: () => void;
+}) {
+  return (
+    <CommandItem value={`${label} ${subtitle}`} onSelect={onSelect}>
+      <Icon />
+      <span>{label}</span>
+      <span className="ml-auto text-xs text-muted-foreground">{subtitle}</span>
+    </CommandItem>
   );
 }
