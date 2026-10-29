@@ -2,6 +2,7 @@
 .env
 .vercel
 public/dashboard
+out
 dist
 *.log
 .DS_Store

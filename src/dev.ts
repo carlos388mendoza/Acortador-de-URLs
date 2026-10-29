@@ -10,8 +10,8 @@ import { env } from './lib/env'
 const dev = new Hono()
 dev.use('*', securityHeaders)
 dev.get('/dashboard', (c) => c.redirect('/dashboard/', 301))
-dev.use('/dashboard/*', serveStatic({ root: './public' }))
-dev.get('/dashboard/*', serveStatic({ path: './public/dashboard/index.html' }))
+dev.use('/dashboard/*', serveStatic({ root: './out' }))
+dev.get('/dashboard/*', serveStatic({ path: './out/dashboard/index.html' }))
 dev.route('/', app)
 
 const port = Number(env.PORT ?? 3000)
