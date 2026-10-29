@@ -1,5 +1,6 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { Scalar } from '@scalar/hono-api-reference'
+import { apiKeysRouter } from './routes/api-keys'
 import { authRouter } from './routes/auth'
 import { publicUrlsRouter } from './routes/public-urls'
 import { redirectRouter } from './routes/redirect'
@@ -15,7 +16,14 @@ api.openAPIRegistry.registerComponent('securitySchemes', 'cookieAuth', {
   description: 'Cookie de sesión que se crea con POST /auth/login',
 })
 
+api.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
+  type: 'http',
+  scheme: 'bearer',
+  description: 'API key con formato sk_...',
+})
+
 api.route('/urls', publicUrlsRouter)
+api.route('/admin/api-keys', apiKeysRouter)
 api.route('/auth', authRouter)
 
 api.doc('/doc', {
