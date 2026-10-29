@@ -1,4 +1,4 @@
-// Build de la raíz: compila el dashboard (si existe) hacia public/dashboard y luego revisa los tipos del backend.
+// Build de la raíz: bundle del backend, compila el dashboard y revisa tipos del backend.
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 
@@ -8,10 +8,12 @@ function run(command) {
   if (result.status !== 0) process.exit(result.status ?? 1)
 }
 
+// Bundle del backend en un solo archivo para Vercel (evita problemas de resolución de módulos)
+run('node scripts/bundle.mjs')
+
 if (existsSync('dashboard/package.json')) {
+  run('node -e "require(\'fs\').rmSync(\'public\',{recursive:true,force:true})"')
   run('npm install --prefix dashboard --include=dev --no-save')
-  // Se invoca vite directamente para no depender de tsc (los tipos se validan en CI/local)
-  run('rm -rf public')
   run('cd dashboard && ./node_modules/.bin/vite build --outDir ../public/dashboard')
 } else {
   console.log('dashboard/ todavía no existe: se omite la compilación del dashboard')
