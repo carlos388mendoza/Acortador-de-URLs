@@ -47,7 +47,7 @@ const DEMO_URLS = [
 
 const pick = <T>(items: readonly T[]): T => items[Math.floor(Math.random() * items.length)] as T
 
-// Los usuarios demo reciben una contraseña aleatoria que no se muestra: no están pensados para iniciar sesión
+// Crea el usuario si no existe y devuelve su id. Secuencial para evitar carreras.
 async function ensureUser(name: string, email: string): Promise<number> {
   const randomPassword = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('')
   await db
@@ -69,7 +69,12 @@ if (!admin) {
   proc?.exit?.(1)
 }
 
-const ownerIds = [admin.id, ...(await Promise.all(DEMO_USERS.map((u) => ensureUser(u.name, u.email))))]
+// Crear los usuarios demo uno por uno (secuencial) y obtener sus ids
+const ownerIds: number[] = [admin.id]
+for (const u of DEMO_USERS) {
+  const id = await ensureUser(u.name, u.email)
+  ownerIds.push(id)
+}
 
 await db.delete(schema.urls).where(like(schema.urls.code, `${DEMO_PREFIX}%`))
 
@@ -80,7 +85,7 @@ for (const [index, [slug, url]] of DEMO_URLS.entries()) {
     .values({
       code: `${DEMO_PREFIX}${slug}`,
       url,
-      userId: ownerIds[index % ownerIds.length] ?? admin.id,
+      userId: ownerIds[index % ownerIds.length]!,
       // Se reparten las fechas de creación en el último mes
       createdAt: new Date(Date.now() - Math.floor(Math.random() * DAYS) * 86_400_000),
     })
@@ -102,4 +107,14 @@ for (const [index, [slug, url]] of DEMO_URLS.entries()) {
   totalClicks += clickCount
 }
 
+// Comprobación final: ninguna URL demo puede quedar sin creador
+const broken = await db.select({ code: schema.urls.code }).from(schema.urls).where(like(schema.urls.code, `${DEMO_PREFIX}%`)).then((rows) => rows.filter((r) => r.code)) // placeholder
+const nullCreators = await db.select({ code: schema.urls.code, userId: schema.urls.userId }).from(schema.urls).where(like(schema.urls.code, `${DEMO_PREFIX}%`))
+const bad = nullCreators.filter((r) => r.userId === null)
+if (bad.length > 0) {
+  console.error('ERROR: URLs demo sin creador:', bad.map((r) => r.code).join(', '))
+  proc?.exit?.(1)
+}
+
 console.log(`Datos de prueba listos: ${DEMO_URLS.length} URLs, ${totalClicks} clics, ${DEMO_USERS.length} usuarios demo`)
+console.log(`Creadores: ${ownerIds.length} (${ownerIds.join(', ')})`)
