@@ -3,7 +3,7 @@ import { mkdir } from 'node:fs/promises'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 
-const baseUrl = 'http://127.0.0.1:5173/dashboard/'
+const baseUrl = 'http://127.0.0.1:5174/dashboard/'
 const widths = [320, 375, 768, 1024, 1440]
 const routes = [
   { name: 'inicio', path: '' },
@@ -17,7 +17,7 @@ const routes = [
 let server
 let browser
 try {
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1'], {
+  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '5174', '--strictPort'], {
     env: { ...process.env, VITE_USE_MOCKS: 'true' },
     stdio: 'ignore',
     detached: process.platform !== 'win32',

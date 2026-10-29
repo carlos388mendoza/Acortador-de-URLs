@@ -1,6 +1,8 @@
 import { mockRequest } from './mock'
 
-const useMocks = import.meta.env.VITE_USE_MOCKS !== 'false'
+// Los mocks son solo para desarrollo explícito y nunca se empaquetan en producción.
+export const mocksEnabled = !import.meta.env.PROD && import.meta.env.VITE_USE_MOCKS === 'true'
+const useMocks = mocksEnabled
 export class ApiError extends Error { status: number; constructor(message: string, status: number) { super(message); this.status = status; this.name = 'ApiError' } }
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (useMocks) return await mockRequest(path, init) as T
