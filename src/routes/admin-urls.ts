@@ -4,7 +4,7 @@ import { getDb, schema } from '../db'
 import { likePattern, paginated, PaginationQuery } from '../lib/pagination'
 import { createRouter } from '../lib/router'
 import { AdminUrlSchema, errorResponse } from '../lib/schemas'
-import { toAdminUrl } from '../lib/serializers'
+import { creatorColumns, toAdminUrl, toCreator } from '../lib/serializers'
 import { CODE_REGEX, generateCode, isHttpUrl, isReservedCode } from '../lib/utils'
 import { requireAuth, type AuthEnv } from '../middleware/auth'
 
@@ -96,13 +96,6 @@ const deleteUrl = createRoute({
     ...commonErrors,
   },
 })
-
-const creatorColumns = { id: schema.users.id, name: schema.users.name }
-
-/** Con leftJoin, si no hay dueño las columnas llegan como null. */
-function toCreator(c: { id: number | null; name: string | null } | null) {
-  return c && c.id !== null && c.name !== null ? { id: c.id, name: c.name } : null
-}
 
 export const adminUrlsRouter = createRouter<AuthEnv>()
 adminUrlsRouter.use('*', requireAuth)
