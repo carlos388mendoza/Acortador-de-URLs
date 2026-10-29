@@ -204,7 +204,7 @@ export function AppLayout() {
                 aria-label="Abrir menú de cuenta"
               >
                 <Avatar className="size-10">
-                  <AvatarFallback className="bg-stone-900 font-bold text-white dark:bg-black">
+                  <AvatarFallback className="bg-primary font-bold text-primary-foreground">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
@@ -331,7 +331,7 @@ export function AppLayout() {
           <div className="mt-4 shrink-0 border-t border-border pt-3">
             <div className="mb-2 flex min-w-0 items-center gap-3">
               <Avatar className="size-10">
-                <AvatarFallback className="bg-stone-900 font-bold text-white dark:bg-black">
+                <AvatarFallback className="bg-primary font-bold text-primary-foreground">
                   {initials}
                 </AvatarFallback>
               </Avatar>
@@ -396,14 +396,14 @@ export function AppLayout() {
       </Sheet>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 items-end border-t border-border bg-card/95 px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-4px_20px_rgb(28_25_23/6%)] backdrop-blur lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 items-center border-t border-border bg-card/95 px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-4px_20px_rgb(28_25_23/6%)] backdrop-blur lg:hidden"
         aria-label="Navegación móvil"
       >
         <MobileNavItem to="/" label="Inicio" icon={House} />
         <button
           type="button"
           onClick={openPalette}
-          className="grid min-h-12 place-items-center gap-0.5 rounded-xl text-xs text-muted-foreground"
+          className="grid h-12 place-content-center place-items-center gap-0.5 rounded-xl text-xs text-muted-foreground"
           aria-label="Buscar"
         >
           <Search className="size-5" />
@@ -412,17 +412,22 @@ export function AppLayout() {
         <button
           type="button"
           onClick={createUrl}
-          className="mx-auto -mt-5 grid min-h-[3.75rem] min-w-[3.75rem] grid-rows-[1fr_auto] place-items-center rounded-full bg-stone-900 px-2 py-2 text-white shadow-lg hover:bg-stone-800 dark:bg-black dark:hover:bg-stone-900"
+          className="group grid h-12 place-items-center"
           aria-label="Nueva URL"
         >
-          <Plus className="size-6 self-end" />
-          <span className="text-[10px] font-semibold leading-none">Nuevo</span>
+          {/* La celda mide lo mismo que las demás (h-12); el círculo de 44px queda dentro de la barra */}
+          <span className="grid size-11 place-content-center place-items-center gap-0.5 rounded-full bg-primary text-primary-foreground shadow-sm group-hover:bg-primary/90">
+            <Plus className="size-5" />
+            <span className="text-[10px] font-semibold leading-none">
+              Nuevo
+            </span>
+          </span>
         </button>
         <MobileNavItem to="/urls" label="URLs" icon={QrCode} />
         <button
           type="button"
           onClick={() => setOpenLayer("account")}
-          className={`grid min-h-12 place-items-center gap-0.5 rounded-xl text-xs ${openLayer === "account" ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}
+          className={`grid h-12 place-content-center place-items-center gap-0.5 rounded-xl text-xs ${openLayer === "account" ? "bg-active text-active-foreground" : "text-muted-foreground"}`}
           aria-label="Cuenta"
         >
           <UserRound className="size-5" />
@@ -477,7 +482,7 @@ function MobileNavItem({
       to={to}
       end={to === "/"}
       className={({ isActive }) =>
-        `grid min-h-12 place-items-center gap-0.5 rounded-xl text-xs ${isActive ? "bg-[#3d1a1c] text-[#ff6b70]" : "text-muted-foreground"}`
+        `grid h-12 place-content-center place-items-center gap-0.5 rounded-xl text-xs ${isActive ? "bg-active text-active-foreground" : "text-muted-foreground"}`
       }
     >
       <Icon className="size-5" />

@@ -87,7 +87,7 @@ export function ProfileForm({ user }: { user: User }) {
             </p>
           </div>
           <div className="flex min-w-0 items-center gap-3">
-            <div className="grid size-12 shrink-0 place-items-center rounded-full bg-stone-900 font-heading text-lg font-bold text-white dark:bg-black">
+            <div className="grid size-12 shrink-0 place-items-center rounded-full bg-primary font-heading text-lg font-bold text-primary-foreground">
               {initials}
             </div>
             <div className="min-w-0">
@@ -104,7 +104,7 @@ export function ProfileForm({ user }: { user: User }) {
           <Button
             form="profile-form"
             type="submit"
-            className="bg-[#1c1917] text-white hover:bg-stone-800"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             Guardar cambios
           </Button>
@@ -164,7 +164,7 @@ export function ProfileForm({ user }: { user: User }) {
           <Button
             form="password-form"
             type="submit"
-            className="bg-[#1c1917] text-white hover:bg-stone-800"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             Actualizar contraseña
           </Button>

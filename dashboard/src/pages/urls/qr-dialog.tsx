@@ -199,7 +199,7 @@ export function QrDialog({ url, onClose }: QrDialogProps) {
         </div>
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button
-            className="bg-[#1c1917] text-white hover:bg-stone-800"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={() => download("png")}
           >
             Descargar PNG

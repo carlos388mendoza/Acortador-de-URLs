@@ -100,7 +100,7 @@ export function StatsPage() {
         subtitle="Resumen de tus enlaces y su actividad."
         action={
           <Button
-            className="h-11 rounded-xl bg-[#1c1917] text-white hover:bg-stone-800"
+            className="h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={createUrl}
           >
             <Plus />

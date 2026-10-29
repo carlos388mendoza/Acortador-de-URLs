@@ -94,7 +94,7 @@ export function UsersPage() {
               </p>
             </div>
             <Button
-              className="rounded-xl bg-[#1c1917] text-white hover:bg-stone-800"
+              className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={() => setEditing(null)}
             >
               <Plus /> Nuevo usuario

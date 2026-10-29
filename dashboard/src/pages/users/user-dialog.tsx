@@ -134,7 +134,7 @@ export function UserDialog({
             <Button
               type="submit"
               disabled={saving}
-              className="bg-[#1c1917] text-white hover:bg-stone-800"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {saving
                 ? "Guardando…"

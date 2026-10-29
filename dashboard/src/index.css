@@ -19,6 +19,8 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-active: var(--active);
+  --color-active-foreground: var(--active-foreground);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);
@@ -47,7 +49,10 @@
   --muted: #eeece9;
   --muted-foreground: #78716c;
   --accent: #fde8ea;
-  --accent-foreground: #c00510;
+  --accent-foreground: #e30613;
+  /* Estado activo/seleccionado (menú, barra inferior). Cada modo tiene su propio valor: no se mezclan. */
+  --active: #fde8ea;
+  --active-foreground: #e30613;
   --destructive: #e30613;
   --border: #e7e5e4;
   --input: #e7e5e4;
@@ -65,13 +70,15 @@
   --popover: #262423;
   --popover-foreground: #f5f5f4;
   --primary: #f5f5f4;
-  --primary-foreground: #1c1b1a;
+  --primary-foreground: #1c1917;
   --secondary: #2b2928;
   --secondary-foreground: #f5f5f4;
   --muted: #2b2928;
   --muted-foreground: #a8a29e;
-  --accent: rgb(255 77 85 / 14%);
+  --accent: #3d1a1c;
   --accent-foreground: #ff6b70;
+  --active: #3d1a1c;
+  --active-foreground: #ff6b70;
   --destructive: #ff4d55;
   --border: #3a3735;
   --input: #2b2928;
