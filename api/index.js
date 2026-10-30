@@ -25341,16 +25341,16 @@ var securityHeaders = secureHeaders({
 // src/lib/skill-content.ts
 var SKILL_CONTENT = `---
 name: acortador-urls
-description: Use this skill when a project needs to shorten URLs, look up a URL by its short code, or generate short links using the Acortador de URLs API. Covers integration patterns, authentication with API keys, error handling (400, 401, 404, 429), rate limits, and best practices.
+description: Use this skill when a project needs to shorten URLs, look up a URL by its short code, or generate short links using the Acortador de URLs API. Covers integration patterns, the required API key (x-api-key or Authorization Bearer), error handling (400, 401, 404, 429), rate limits, and best practices.
 ---
 
 # Acortador de URLs \u2014 API
 
-API REST p\xFAblica para acortar URLs y obtener la URL original a partir de un c\xF3digo corto. Documentaci\xF3n interactiva (Scalar): https://acortador-de-urls-iota.vercel.app/api/reference. Especificaci\xF3n OpenAPI: https://acortador-de-urls-iota.vercel.app/api/doc. La especificaci\xF3n descargada est\xE1 en \`references/openapi.json\`.
+API REST para acortar URLs y obtener la URL original a partir de un c\xF3digo corto. Los endpoints \`/api/urls/*\` **requieren una API key**. Documentaci\xF3n interactiva (Scalar): https://acortador-de-urls-iota.vercel.app/api/reference. Especificaci\xF3n OpenAPI: https://acortador-de-urls-iota.vercel.app/api/doc. La especificaci\xF3n descargada est\xE1 en \`references/openapi.json\`.
 
 ## URL base
 
-Todas las rutas p\xFAblicas viven bajo \`/api\`:
+Todas las rutas de la API viven bajo \`/api\`:
 
 \`\`\`
 https://acortador-de-urls-iota.vercel.app/api
@@ -25358,7 +25358,7 @@ https://acortador-de-urls-iota.vercel.app/api
 
 En local: \`http://localhost:3000/api\`.
 
-## Obtener una API key (opcional)
+## Obtener una API key (obligatoria)
 
 1. Entra al dashboard: https://acortador-de-urls-iota.vercel.app/dashboard/
 2. Inicia sesi\xF3n con tu cuenta.
@@ -25366,13 +25366,28 @@ En local: \`http://localhost:3000/api\`.
 4. Copia la clave completa (formato \`sk_\` + 32 caracteres). **Solo se muestra una vez.**
 5. Gu\xE1rdala en una variable de entorno (\`ACORTADOR_API_KEY\`). Nunca la pongas en el frontend ni en el repositorio.
 
-Sin API key las URLs se crean de forma an\xF3nima. Con una clave v\xE1lida la URL queda asociada a tu cuenta y se actualiza \`last_used_at\`.
+## Autenticaci\xF3n
 
-## Endpoints p\xFAblicos
+Env\xEDa la clave en **una** de estas cabeceras (si mandas las dos, deben llevar la misma clave):
+
+\`\`\`
+x-api-key: sk_...
+\`\`\`
+
+\`\`\`
+Authorization: Bearer sk_...
+\`\`\`
+
+- Sin clave: \`401 { "error": "API key requerida" }\`.
+- Clave inexistente o desactivada: \`401 { "error": "API key inv\xE1lida" }\`.
+- Cada uso v\xE1lido actualiza \`last_used_at\` de la clave, y las URLs creadas quedan asociadas a tu cuenta.
+- La clave se comprueba antes que el body: sin clave v\xE1lida la respuesta siempre es 401.
+
+## Endpoints
 
 ### 1. Crear una URL corta
 
-\`POST /api/urls/new\`
+\`POST /api/urls/new\` (requiere API key)
 
 Body:
 \`\`\`json
@@ -25380,11 +25395,6 @@ Body:
 \`\`\`
 
 Solo se aceptan URLs \`http\` y \`https\`.
-
-Header opcional:
-\`\`\`
-Authorization: Bearer sk_...
-\`\`\`
 
 Respuesta \`201 Created\`:
 \`\`\`json
@@ -25398,34 +25408,36 @@ Respuesta \`201 Created\`:
 
 ### 2. Obtener una URL por c\xF3digo
 
-\`GET /api/urls/{code}\`
+\`GET /api/urls/{code}\` (requiere API key)
 
 Respuesta \`200 OK\`: mismo objeto que arriba.
 
 ### 3. Redirecci\xF3n
 
-\`GET /{code}\` \u2192 \`302 Found\` con header \`Location\` apuntando a la URL original. \xDAsalo directamente como enlace corto.
+\`GET /{code}\` \u2192 \`302 Found\` con header \`Location\` apuntando a la URL original. **No requiere API key**: \xFAsalo directamente como enlace corto para tus usuarios.
 
 ## Errores
 
 | C\xF3digo | Cuerpo | Cu\xE1ndo |
 |---|---|---|
-| 400 | \`{ "error": "La URL proporcionada no es v\xE1lida" }\` | URL no http/https o body inv\xE1lido |
-| 401 | \`{ "error": "API key inv\xE1lida" }\` | \`Authorization\` presente pero la key no existe o est\xE1 desactivada |
+| 400 | \`{ "error": "La URL proporcionada no es v\xE1lida" }\` | URL no http/https o body inv\xE1lido (con una clave v\xE1lida) |
+| 401 | \`{ "error": "API key requerida" }\` | No se envi\xF3 \`x-api-key\` ni \`Authorization\` |
+| 401 | \`{ "error": "API key inv\xE1lida" }\` | La clave no existe, est\xE1 desactivada, \`Authorization\` no usa \`Bearer\` o las dos cabeceras traen claves distintas |
 | 404 | \`{ "error": "URL no encontrada" }\` | C\xF3digo inexistente o URL borrada (\`deleted_at\` no nulo) |
 | 429 | \`{ "error": "Demasiados intentos. Intenta de nuevo en unos minutos" }\` | L\xEDmite superado. Incluye \`Retry-After\` (segundos) |
 
 ## L\xEDmites de uso
 
-- Sin API key v\xE1lida: **30 peticiones por minuto e IP**.
-- Con API key v\xE1lida: **120 peticiones por minuto y API key** (independiente del cupo de la IP).
-- Login: 5 intentos fallidos por IP + correo en 15 minutos bloquean 15 minutos.
+- Crear URLs con una API key v\xE1lida: **120 peticiones por minuto y API key**.
+- Peticiones con una API key inv\xE1lida: **30 por minuto e IP**; despu\xE9s responden 429 en lugar de 401.
+- Login del dashboard: 5 intentos fallidos por IP + correo en 15 minutos bloquean 15 minutos.
 
 ## Buenas pr\xE1cticas
 
 - Guarda la API key en variables de entorno, nunca en el frontend ni en el repositorio.
 - Valida la URL (http/https) antes de enviarla.
 - Ante un 429, espera los segundos indicados en \`Retry-After\` y reintenta.
+- Ante un 401, no reintentes en bucle: revisa que la variable de entorno exista y que la clave siga activa en el dashboard.
 - No expongas la key en c\xF3digo cliente; si necesitas acortar desde el navegador, hazlo a trav\xE9s de tu propio backend.
 - Reutiliza el \`short_url\` devuelto; no vuelvas a crear la misma URL si ya la tienes.
 
@@ -25437,13 +25449,14 @@ Crear:
 \`\`\`bash
 curl -s -X POST https://acortador-de-urls-iota.vercel.app/api/urls/new \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer $ACORTADOR_API_KEY" \\
+  -H "x-api-key: $ACORTADOR_API_KEY" \\
   -d '{"url":"https://example.com/pagina-larga"}'
 \`\`\`
 
-Consultar:
+Consultar (tambi\xE9n vale \`Authorization: Bearer\`):
 \`\`\`bash
-curl -s https://acortador-de-urls-iota.vercel.app/api/urls/EyvLMH
+curl -s https://acortador-de-urls-iota.vercel.app/api/urls/EyvLMH \\
+  -H "Authorization: Bearer $ACORTADOR_API_KEY"
 \`\`\`
 
 ### TypeScript (fetch, funci\xF3n reutilizable)
@@ -25460,14 +25473,12 @@ type AcortadorError = { error: string }
 
 const BASE = 'https://acortador-de-urls-iota.vercel.app/api'
 
-export async function acortarUrl(url: string, apiKey?: string): Promise<ShortUrl> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (apiKey) headers.Authorization = \`Bearer \${apiKey}\`
+async function request(path: string, apiKey: string, init: RequestInit = {}): Promise<ShortUrl> {
+  if (!apiKey) throw new Error('Falta la API key (ACORTADOR_API_KEY)')
 
-  const res = await fetch(\`\${BASE}/urls/new\`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ url }),
+  const res = await fetch(\`\${BASE}\${path}\`, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, ...init.headers },
   })
 
   if (res.status === 429) {
@@ -25480,8 +25491,14 @@ export async function acortarUrl(url: string, apiKey?: string): Promise<ShortUrl
   return data as ShortUrl
 }
 
+export const acortarUrl = (url: string, apiKey: string) =>
+  request('/urls/new', apiKey, { method: 'POST', body: JSON.stringify({ url }) })
+
+export const obtenerUrl = (code: string, apiKey: string) =>
+  request(\`/urls/\${encodeURIComponent(code)}\`, apiKey)
+
 // Uso:
-// const { short_url } = await acortarUrl('https://example.com', process.env.ACORTADOR_API_KEY)
+// const { short_url } = await acortarUrl('https://example.com', process.env.ACORTADOR_API_KEY ?? '')
 \`\`\`
 
 ### Python (requests)
@@ -25492,18 +25509,26 @@ import requests
 
 BASE = "https://acortador-de-urls-iota.vercel.app/api"
 
-def acortar_url(url: str, api_key: str | None = None) -> dict:
-    headers = {"Content-Type": "application/json"}
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
-    r = requests.post(f"{BASE}/urls/new", json={"url": url}, headers=headers, timeout=10)
+def _headers(api_key: str) -> dict:
+    if not api_key:
+        raise ValueError("Falta la API key (ACORTADOR_API_KEY)")
+    return {"Content-Type": "application/json", "x-api-key": api_key}
+
+def _check(r: requests.Response) -> dict:
     if r.status_code == 429:
         raise RuntimeError(f"Rate limited. Reintenta en {r.headers.get('Retry-After')}s")
-    r.raise_for_status()
+    if not r.ok:
+        raise RuntimeError(r.json().get("error", f"Error {r.status_code}"))
     return r.json()
 
+def acortar_url(url: str, api_key: str) -> dict:
+    return _check(requests.post(f"{BASE}/urls/new", json={"url": url}, headers=_headers(api_key), timeout=10))
+
+def obtener_url(code: str, api_key: str) -> dict:
+    return _check(requests.get(f"{BASE}/urls/{code}", headers=_headers(api_key), timeout=10))
+
 # uso:
-# data = acortar_url("https://example.com", os.getenv("ACORTADOR_API_KEY"))
+# data = acortar_url("https://example.com", os.environ["ACORTADOR_API_KEY"])
 # print(data["short_url"])
 \`\`\`
 
@@ -25515,17 +25540,17 @@ import { Hono } from 'hono'
 const app = new Hono()
 
 app.post('/shorten', async (c) => {
+  const apiKey = process.env.ACORTADOR_API_KEY
+  if (!apiKey) return c.json({ error: 'Falta ACORTADOR_API_KEY en el servidor' }, 500)
+
   const { url } = await c.req.json<{ url: string }>()
   const upstream = await fetch('https://acortador-de-urls-iota.vercel.app/api/urls/new', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: \`Bearer \${process.env.ACORTADOR_API_KEY}\`,
-    },
+    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
     body: JSON.stringify({ url }),
   })
   const data = await upstream.json()
-  return c.json(data, upstream.status as 200 | 201 | 400 | 401 | 429)
+  return c.json(data, upstream.status as 201 | 400 | 401 | 429)
 })
 
 export default app
@@ -25536,16 +25561,17 @@ export default app
 Checklist para integrar la API en un proyecto nuevo:
 
 1. Confirmar que el proyecto necesita acortar URLs o resolver c\xF3digos cortos.
-2. Decidir si se usar\xE1 API key (recomendado para asociar URLs a una cuenta y tener mayor l\xEDmite).
-3. Si se usa key, indicar al usuario que la cree en el dashboard y la guarde en una variable de entorno (\`ACORTADOR_API_KEY\`).
+2. La API key es obligatoria: pedir al usuario que la cree en el dashboard (**API keys**) y la guarde en una variable de entorno (\`ACORTADOR_API_KEY\`). No continuar con valores inventados.
+3. Leer la clave solo en el servidor y fallar con un mensaje claro si falta la variable de entorno.
 4. Verificar que la URL a acortar sea \`http\` o \`https\` antes de enviarla.
-5. Implementar la llamada a \`POST /api/urls/new\` con \`Content-Type: application/json\` y, si aplica, \`Authorization: Bearer <key>\`.
-6. Manejar respuestas: 201 (\xE9xito), 400 (URL inv\xE1lida), 401 (key inv\xE1lida), 429 (rate limit, usar \`Retry-After\`).
+5. Implementar \`POST /api/urls/new\` con \`Content-Type: application/json\` y la cabecera \`x-api-key: <key>\` (o \`Authorization: Bearer <key>\`).
+6. Manejar respuestas: 201 (\xE9xito), 400 (URL inv\xE1lida), 401 (\`API key requerida\` o \`API key inv\xE1lida\`: revisar la configuraci\xF3n, no reintentar), 429 (rate limit, usar \`Retry-After\`).
 7. Guardar y reutilizar el \`short_url\` devuelto; no recrear la misma URL.
-8. Si se necesita la URL original, llamar a \`GET /api/urls/{code}\`.
-9. Para redirigir usuarios, usar directamente \`GET /{code}\` (302).
+8. Si se necesita la URL original, llamar a \`GET /api/urls/{code}\` con la misma cabecera de API key.
+9. Para redirigir usuarios, usar directamente \`GET /{code}\` (302), que no requiere clave.
 10. Si la integraci\xF3n es desde el frontend, mover la llamada a un backend propio para no exponer la key.
-11. Probar contra producci\xF3n con un caso v\xE1lido y uno inv\xE1lido (URL no http) antes de dar la tarea por terminada.`;
+11. Probar contra producci\xF3n un caso v\xE1lido, uno sin clave (401) y uno con URL no http (400) antes de dar la tarea por terminada.
+`;
 
 // node_modules/drizzle-orm/entity.js
 var entityKind = Symbol.for("drizzle:entityKind");
@@ -41157,7 +41183,7 @@ function loginLimits() {
     windowMinutes: positiveInt("LOGIN_WINDOW_MINUTES", 15)
   };
 }
-function anonymousUrlLimit() {
+function invalidApiKeyLimit() {
   return positiveInt("URL_RATE_LIMIT_PER_MINUTE", 30);
 }
 function apiKeyUrlLimit() {
@@ -41409,6 +41435,31 @@ authRouter.openapi(updateMe, async (c) => {
   return c.json({ user: toUser(updated) }, 200);
 });
 
+// src/middleware/api-key.ts
+function keyFromAuthorization(header) {
+  if (header === void 0 || header.trim() === "") return null;
+  return /^Bearer\s+(\S+)$/i.exec(header.trim())?.[1] ?? "";
+}
+var requireApiKey = createMiddleware(async (c, next2) => {
+  const fromHeader = c.req.header("x-api-key")?.trim() || null;
+  const fromAuthorization = keyFromAuthorization(c.req.header("authorization"));
+  if (fromHeader === null && fromAuthorization === null) {
+    return c.json({ error: "API key requerida" }, 401);
+  }
+  const key = fromHeader ?? fromAuthorization;
+  const consistent = fromHeader === null || fromAuthorization === null || fromHeader === fromAuthorization;
+  const db = getDb();
+  const [found] = key && consistent ? await db.select({ id: schema_exports.apiKeys.id, userId: schema_exports.apiKeys.userId }).from(schema_exports.apiKeys).where(and(eq(schema_exports.apiKeys.keyHash, await hashApiKey(key)), eq(schema_exports.apiKeys.isActive, true))).limit(1) : [];
+  if (!found) {
+    const limited = await checkRateLimit(`apikey:invalid:ip:${getClientIp(c)}`, invalidApiKeyLimit());
+    if (!limited.allowed) return sendRateLimited(c, limited.retryAfter);
+    return c.json({ error: "API key inv\xE1lida" }, 401);
+  }
+  await db.update(schema_exports.apiKeys).set({ lastUsedAt: /* @__PURE__ */ new Date() }).where(eq(schema_exports.apiKeys.id, found.id));
+  c.set("apiKey", found);
+  await next2();
+});
+
 // src/routes/public-urls.ts
 var INVALID_URL2 = "La URL proporcionada no es v\xE1lida";
 var PublicUrlSchema = external_exports.object({
@@ -41428,28 +41479,43 @@ function toPublic(row, requestUrl) {
     created_at: toIso(row.createdAt)
   };
 }
-var optionalBearer = [{}, { bearerAuth: [] }];
+var apiKeySecurity = [{ bearerAuth: [] }, { apiKeyHeader: [] }];
+var API_KEY_HELP = "Requiere una API key activa en `x-api-key: sk_...` o en `Authorization: Bearer sk_...`. Sin clave: 401 `API key requerida`; clave inv\xE1lida o desactivada: 401 `API key inv\xE1lida`. Las claves inv\xE1lidas cuentan para un l\xEDmite de 30 intentos por minuto e IP.";
+var unauthorized = {
+  content: {
+    "application/json": {
+      schema: ErrorSchema,
+      examples: {
+        requerida: { summary: "Sin API key", value: { error: "API key requerida" } },
+        invalida: { summary: "API key inv\xE1lida o desactivada", value: { error: "API key inv\xE1lida" } }
+      }
+    }
+  },
+  description: "Falta la API key, o es inv\xE1lida o est\xE1 desactivada"
+};
+var tooManyRequests = {
+  content: { "application/json": { schema: ErrorSchema } },
+  description: "Demasiadas solicitudes",
+  headers: external_exports.object({
+    "Retry-After": external_exports.string().openapi({ description: "Segundos que faltan para poder reintentar" })
+  })
+};
 var createUrl2 = createRoute({
   method: "post",
   path: "/new",
   tags: ["API p\xFAblica"],
   summary: "Crear una URL corta",
-  description: "Opcional: con `Authorization: Bearer <api_key>` la URL queda asociada al due\xF1o de la clave. L\xEDmites: 30 peticiones por minuto e IP sin clave v\xE1lida y 120 por minuto y API key. Al superarlos devuelve 429 con `Retry-After`.",
-  security: optionalBearer,
+  description: `${API_KEY_HELP} La URL queda asociada al due\xF1o de la clave. L\xEDmite: 120 creaciones por minuto y API key; al superarlo devuelve 429 con \`Retry-After\`.`,
+  security: apiKeySecurity,
+  middleware: [requireApiKey],
   request: {
     body: { content: { "application/json": { schema: CreateBodySchema } }, required: true }
   },
   responses: {
     201: { content: { "application/json": { schema: PublicUrlSchema } }, description: "URL creada" },
     400: { content: { "application/json": { schema: ErrorSchema } }, description: "URL no v\xE1lida" },
-    401: { content: { "application/json": { schema: ErrorSchema } }, description: "API key inv\xE1lida o desactivada" },
-    429: {
-      content: { "application/json": { schema: ErrorSchema } },
-      description: "Demasiadas solicitudes",
-      headers: external_exports.object({
-        "Retry-After": external_exports.string().openapi({ description: "Segundos que faltan para poder reintentar" })
-      })
-    }
+    401: unauthorized,
+    429: tooManyRequests
   }
 });
 var getUrl = createRoute({
@@ -41457,10 +41523,15 @@ var getUrl = createRoute({
   path: "/{code}",
   tags: ["API p\xFAblica"],
   summary: "Obtener una URL por su c\xF3digo",
+  description: API_KEY_HELP,
+  security: apiKeySecurity,
+  middleware: [requireApiKey],
   request: { params: external_exports.object({ code: external_exports.string().openapi({ example: "aB3dE9" }) }) },
   responses: {
     200: { content: { "application/json": { schema: PublicUrlSchema } }, description: "URL encontrada" },
-    404: { content: { "application/json": { schema: ErrorSchema } }, description: "No existe" }
+    401: unauthorized,
+    404: { content: { "application/json": { schema: ErrorSchema } }, description: "No existe" },
+    429: tooManyRequests
   }
 });
 var MAX_CODE_ATTEMPTS = 5;
@@ -41471,29 +41542,12 @@ var publicUrlsRouter = new OpenAPIHono({
 });
 publicUrlsRouter.openapi(createUrl2, async (c) => {
   const { url: url2 } = c.req.valid("json");
-  const db = getDb();
-  const ip = getClientIp(c);
-  let owner = null;
-  let rateLimitKey = `url:ip:${ip}`;
-  let rateLimit = anonymousUrlLimit();
-  const authorization = c.req.header("authorization");
-  if (authorization !== void 0) {
-    const match2 = /^Bearer\s+(\S+)$/i.exec(authorization.trim());
-    const [found] = match2?.[1] ? await db.select({ id: schema_exports.apiKeys.id, userId: schema_exports.apiKeys.userId }).from(schema_exports.apiKeys).where(and(eq(schema_exports.apiKeys.keyHash, await hashApiKey(match2[1])), eq(schema_exports.apiKeys.isActive, true))).limit(1) : [];
-    if (!found) {
-      const limited2 = await checkRateLimit(rateLimitKey, rateLimit);
-      if (!limited2.allowed) return sendRateLimited(c, limited2.retryAfter);
-      return c.json({ error: "API key inv\xE1lida" }, 401);
-    }
-    owner = { userId: found.userId, apiKeyId: found.id };
-    rateLimitKey = `url:key:${found.id}`;
-    rateLimit = apiKeyUrlLimit();
-    await db.update(schema_exports.apiKeys).set({ lastUsedAt: /* @__PURE__ */ new Date() }).where(eq(schema_exports.apiKeys.id, found.id));
-  }
-  const limited = await checkRateLimit(rateLimitKey, rateLimit);
+  const apiKey = c.get("apiKey");
+  const limited = await checkRateLimit(`url:key:${apiKey.id}`, apiKeyUrlLimit());
   if (!limited.allowed) return sendRateLimited(c, limited.retryAfter);
+  const db = getDb();
   for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt++) {
-    const [row] = await db.insert(schema_exports.urls).values({ code: generateCode(), url: url2, userId: owner?.userId ?? null, apiKeyId: owner?.apiKeyId ?? null }).onConflictDoNothing({ target: schema_exports.urls.code }).returning();
+    const [row] = await db.insert(schema_exports.urls).values({ code: generateCode(), url: url2, userId: apiKey.userId, apiKeyId: apiKey.id }).onConflictDoNothing({ target: schema_exports.urls.code }).returning();
     if (row) return c.json(toPublic(row, c.req.url), 201);
   }
   throw new Error("No se pudo generar un c\xF3digo \xFAnico");
@@ -41634,7 +41688,13 @@ api.openAPIRegistry.registerComponent("securitySchemes", "cookieAuth", {
 api.openAPIRegistry.registerComponent("securitySchemes", "bearerAuth", {
   type: "http",
   scheme: "bearer",
-  description: "API key con formato sk_..."
+  description: "API key en `Authorization: Bearer sk_...`"
+});
+api.openAPIRegistry.registerComponent("securitySchemes", "apiKeyHeader", {
+  type: "apiKey",
+  in: "header",
+  name: "x-api-key",
+  description: "API key en la cabecera `x-api-key: sk_...` (alternativa a Authorization)"
 });
 api.route("/urls", publicUrlsRouter);
 api.route("/admin/api-keys", apiKeysRouter);

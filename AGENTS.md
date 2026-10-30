@@ -38,14 +38,14 @@ Lee este archivo completo antes de escribir código. Si algo aquí contradice un
 
 | Ruta | Qué hace |
 |---|---|
-| `POST /api/urls/new` | API pública: crear URL corta |
-| `GET /api/urls/{code}` | API pública: obtener URL |
+| `POST /api/urls/new` | API pública: crear URL corta (requiere API key) |
+| `GET /api/urls/{code}` | API pública: obtener URL (requiere API key) |
 | `/api/auth/*` | Login, logout y sesión actual |
 | `/api/admin/*` | Endpoints que consume el dashboard (requieren sesión) |
 | `GET /api/doc` | Especificación OpenAPI en JSON |
 | `GET /api/reference` | Interfaz de Scalar |
 | `/dashboard/*` | Dashboard (SPA). Cualquier subruta devuelve el index.html |
-| `GET /{code}` | Redirección 302 a la URL original. Se registra al final |
+| `GET /{code}` | Redirección 302 a la URL original (sin API key). Se registra al final |
 
 Códigos reservados que nunca se pueden usar como código corto: `api`, `dashboard`, `docs`, `favicon.ico`, `robots.txt`, `assets`.
 
@@ -60,16 +60,21 @@ Códigos reservados que nunca se pueden usar como código corto: `api`, `dashboa
 
 ## API pública (definida por los requisitos del proyecto)
 
+Los dos endpoints `/api/urls/*` son para apps externas y **exigen una API key activa** en `x-api-key: <api_key>` o en `Authorization: Bearer <api_key>` (basta una de las dos; si vienen ambas deben traer la misma clave):
+- Sin clave → `401 { "error": "API key requerida" }`.
+- Clave inexistente, desactivada, `Authorization` sin formato Bearer o dos claves distintas → `401 { "error": "API key inválida" }`.
+- Cada uso válido actualiza `last_used_at`. La clave se comprueba antes que el body: sin clave válida siempre es `401`, aunque el body sea inválido.
+
 `POST /api/urls/new` con `{ "url": "https://..." }`:
 - `201` → `{ "code", "url", "short_url", "created_at" }`
 - `400` → `{ "error": "La URL proporcionada no es válida" }` (solo se aceptan http y https)
-- Header opcional `Authorization: Bearer <api_key>`: si viene y es válida, la URL se asocia al dueño de la key y se actualiza `last_used_at`. Si viene pero es inválida o está desactivada → `401 { "error": "API key inválida" }`.
+- La URL queda asociada al dueño de la API key.
 
 `GET /api/urls/{code}`:
 - `200` → mismo objeto que arriba
 - `404` → `{ "error": "URL no encontrada" }`
 
-`GET /{code}` → `302` con header `Location`. El clic se registra en segundo plano con `waitUntil` de `@vercel/functions`. URLs borradas (`deleted_at` no nulo) devuelven 404.
+`GET /{code}` (sin API key, abierto para cualquiera) → `302` con header `Location`. El clic se registra en segundo plano con `waitUntil` de `@vercel/functions`. URLs borradas (`deleted_at` no nulo) devuelven 404.
 
 ## Contrato de autenticación y administración
 
@@ -158,7 +163,8 @@ Para un `user` normal, las estadísticas se calculan solo con sus propias URLs.
 - `JWT_SECRET`: cadena aleatoria larga
 - `ADMIN_EMAIL`, `ADMIN_PASSWORD`: solo para el script que crea el primer admin
 - `LOGIN_MAX_ATTEMPTS` (5), `LOGIN_WINDOW_MINUTES` (15): bloqueo de login
-- `URL_RATE_LIMIT_PER_MINUTE` (30), `API_KEY_RATE_LIMIT_PER_MINUTE` (120): límites de creación de URLs
+- `URL_RATE_LIMIT_PER_MINUTE` (30): intentos por minuto e IP con API key inválida en `/api/urls/*`
+- `API_KEY_RATE_LIMIT_PER_MINUTE` (120): creaciones de URL por minuto y API key válida
 
 ## Branding
 
@@ -183,7 +189,8 @@ La carpeta `branding/` es la fuente de verdad de la imagen del proyecto:
 Los límites se aplican por IP (primera entrada de `x-forwarded-for`; si no hay, `x-real-ip`, `cf-connecting-ip` o el socket). En Vercel el proxy de la plataforma rellena esas cabeceras.
 
 - **Login**: 5 intentos fallidos para la misma pareja IP + correo dentro de 15 minutos bloquean nuevos intentos durante 15 minutos. Un login correcto borra el contador de esa pareja. Mientras está bloqueado se responde antes de comprobar la contraseña.
-- **Crear URL** (`POST /api/urls/new`): 30 peticiones por minuto e IP sin clave válida (las claves inválidas consumen este cupo) y 120 por minuto y API key válida. Los dos cupos son independientes.
+- **API pública** (`/api/urls/*`): las peticiones con API key inválida consumen un cupo de 30 por minuto e IP (contra quien prueba claves al azar); al agotarlo responden `429` en lugar de `401`. Sin cabecera de clave responden `401` sin consumir cupo.
+- **Crear URL** (`POST /api/urls/new`) con clave válida: 120 por minuto y API key. Es independiente del cupo por IP.
 - Cualquier límite superado devuelve `429 { "error": "Demasiados intentos. Intenta de nuevo en unos minutos" }` con la cabecera `Retry-After` en segundos.
 - Los contadores viven en `login_attempts` y `rate_limits`; se limpian solos (de forma probabilística, dentro de una petición) pasados 24 h y 1 h respectivamente.
 - `hono/secure-headers` añade CSP, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, políticas de origen y HSTS solo en producción. La CSP permite explícitamente `cdn.jsdelivr.net`, `fonts.scalar.com` y estilos/scripts en línea para que Scalar siga funcionando.
@@ -240,4 +247,4 @@ Detalles que el contrato no fija y que el backend resolvió así (el dashboard p
 - `GET /api/admin/search`: `q` vacío o solo espacios → `400`; `limit` mayor a 10 → `400` (no se recorta). El orden es por fecha de creación descendente.
 - `PATCH /api/auth/me`: si se intenta cambiar el correo o la contraseña sin `current_password` o con una incorrecta → `401 { "error": "La contraseña actual es incorrecta" }`. Un body vacío o sin cambios devuelve `200` con el usuario actual.
 - Login: los 5 primeros fallos devuelven `401`; el sexto y los siguientes devuelven `429` hasta que expire el bloqueo. `Retry-After` siempre son segundos enteros.
-- Crear URL: las peticiones con una clave inválida consumen el cupo anónimo de la IP y luego devuelven `401` si aún les queda cupo. Una clave válida usa su propio cupo de 120/min, separado del de la IP.
+- API pública: la clave se lee de `x-api-key` o de `Authorization: Bearer`. Las peticiones con clave inválida consumen el cupo de 30/min de la IP y devuelven `401` mientras quede cupo (luego `429`). Una clave válida usa su propio cupo de 120/min solo al crear URLs; `GET /api/urls/{code}` con clave válida no tiene límite.

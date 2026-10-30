@@ -31,7 +31,14 @@ api.openAPIRegistry.registerComponent('securitySchemes', 'cookieAuth', {
 api.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
   type: 'http',
   scheme: 'bearer',
-  description: 'API key con formato sk_...',
+  description: 'API key en `Authorization: Bearer sk_...`',
+})
+
+api.openAPIRegistry.registerComponent('securitySchemes', 'apiKeyHeader', {
+  type: 'apiKey',
+  in: 'header',
+  name: 'x-api-key',
+  description: 'API key en la cabecera `x-api-key: sk_...` (alternativa a Authorization)',
 })
 
 api.route('/urls', publicUrlsRouter)

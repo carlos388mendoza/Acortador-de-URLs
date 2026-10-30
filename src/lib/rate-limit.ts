@@ -25,7 +25,8 @@ export function loginLimits(): { maxAttempts: number; windowMinutes: number } {
   }
 }
 
-export function anonymousUrlLimit(): number {
+/** Intentos por minuto e IP con una API key inválida (en los endpoints públicos). */
+export function invalidApiKeyLimit(): number {
   return positiveInt('URL_RATE_LIMIT_PER_MINUTE', 30)
 }
 
