@@ -222,7 +222,7 @@ export function AppLayout() {
             <DropdownMenuContent
               align="start"
               side="top"
-              className="w-[300px] rounded-2xl p-0"
+              className="w-[min(300px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl p-0"
             >
               <AccountPanel
                 user={data?.user}

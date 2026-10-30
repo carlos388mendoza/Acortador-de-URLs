@@ -9,32 +9,22 @@ const options: { value: Theme; label: string; icon: typeof Sun }[] = [
 ];
 
 export function ThemeControl() {
-  const { theme, setTheme } = useDashboardTheme();
+  const { theme, cycleTheme } = useDashboardTheme();
+  const current = options.find((option) => option.value === theme) ?? options[2];
+  const Icon = current.icon;
 
   return (
-    <div
-      className="grid grid-cols-3 gap-1 rounded-xl bg-muted p-1"
-      aria-label="Tema"
+    <Button
+      type="button"
+      size="sm"
+      variant="ghost"
+      aria-label={`Tema actual: ${current.label}. Cambiar tema`}
+      title={`Tema actual: ${current.label}. Clic para cambiar`}
+      onClick={cycleTheme}
+      className="h-9 w-full justify-center gap-2 rounded-xl bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
     >
-      {options.map(({ value, label, icon: Icon }) => (
-        <Button
-          key={value}
-          type="button"
-          size="sm"
-          variant="ghost"
-          aria-label={`Tema ${label}`}
-          aria-pressed={theme === value}
-          onClick={() => setTheme(value)}
-          className={`h-9 flex-row gap-1 px-1 text-[10px] ${
-            theme === value
-              ? "bg-card text-foreground shadow-sm hover:bg-card"
-              : "text-muted-foreground"
-          }`}
-        >
-          <Icon className="size-3.5" />
-          {label}
-        </Button>
-      ))}
-    </div>
+      <Icon className="size-4" />
+      {current.label}
+    </Button>
   );
 }

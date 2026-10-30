@@ -26,8 +26,8 @@ export function AccountPanel({
   return (
     <div className="grid gap-3 p-3" aria-label="Cuenta">
       <h2 className="font-heading text-base font-bold">Cuenta</h2>
-      <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/60 p-2.5">
-        <Avatar className="size-10">
+      <div className="flex min-w-0 items-center gap-3 overflow-hidden rounded-xl border border-border bg-muted/60 p-2.5">
+        <Avatar className="size-10 shrink-0">
           <AvatarFallback className="bg-primary font-bold text-primary-foreground">
             {initials}
           </AvatarFallback>
