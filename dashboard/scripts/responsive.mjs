@@ -608,7 +608,43 @@ try {
   });
   await page.getByRole("button", { name: "Generar QR" }).first().click();
   await page.getByRole("dialog").getByText("Código QR").waitFor();
+  // La vista previa debe dibujarse al abrir, con una imagen dañada, con una imagen válida y sin logo
+  const waitForQr = (moment) =>
+    page
+      .waitForFunction(
+        () => {
+          const svg = document.querySelector(
+            '[aria-label="Vista previa del código QR"] svg',
+          );
+          return (svg?.querySelectorAll("rect, path, circle").length ?? 0) > 20;
+        },
+        undefined,
+        { timeout: 10000 },
+      )
+      .catch(() => {
+        throw new Error(`La vista previa del QR quedó en blanco ${moment}`);
+      });
+  const logoInput = page.locator('[role="dialog"] input[type="file"]');
+  await waitForQr("al abrir el diálogo");
+  await logoInput.setInputFiles({
+    name: "danada.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("esto no es una imagen"),
+  });
+  await page.getByText("No se pudo usar esa imagen").first().waitFor();
+  await waitForQr("con una imagen dañada");
+  await logoInput.setInputFiles({
+    name: "logo.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==",
+      "base64",
+    ),
+  });
+  await waitForQr("al subir una imagen válida");
   await page.getByRole("button", { name: "Quitar logo" }).click();
+  await waitForQr("al quitar el logo");
+  console.log("✓ vista previa del QR con logo válido, dañado y sin logo");
   await page
     .getByRole("dialog")
     .getByRole("button", { name: "Descargar PNG" })
