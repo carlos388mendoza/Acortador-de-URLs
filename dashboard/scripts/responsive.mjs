@@ -706,6 +706,26 @@ try {
     `✓ bloques de código de la SKILL legibles (${codeBlocks.length}, ${themeLabel})`,
   );
 
+  // Las tablas en Markdown (GFM) se muestran como tabla y no como texto con barras
+  const skillTable = await page.evaluate(() => ({
+    rows: document.querySelectorAll("main table tr").length,
+    headers: [...document.querySelectorAll("main table th")].map((th) =>
+      th.textContent?.trim(),
+    ),
+    rawPipes: (document.querySelector("main")?.innerText ?? "").includes(
+      "|---",
+    ),
+  }));
+  if (
+    skillTable.rows < 3 ||
+    skillTable.headers.join(",") !== "Código,Cuerpo,Cuándo" ||
+    skillTable.rawPipes
+  )
+    throw new Error(
+      `La tabla de la SKILL no se renderizó: ${JSON.stringify(skillTable)}`,
+    );
+  console.log(`✓ tabla de la SKILL renderizada (${themeLabel})`);
+
   const macPage = await browser.newPage({
     viewport: { width: 1440, height: 900 },
     colorScheme: theme,
