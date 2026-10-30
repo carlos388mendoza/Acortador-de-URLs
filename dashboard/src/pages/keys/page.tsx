@@ -1,7 +1,11 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { useLocation, useNavigate } from "react-router-dom";
-import { KeyRound, Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
+import { KeyRound, Plus, Search } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api, apiPatch } from "@/api/client";
@@ -10,6 +14,14 @@ import { errorMessage } from "@/lib/format";
 import { LoadingCards } from "@/components/shared/loading-cards";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ApiKeyCard } from "./key-card";
 import { PageHeading } from "@/components/layout/page-heading";
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
@@ -18,6 +30,34 @@ import {
   RenameKeyDialog,
   RevealKeyDialog,
 } from "./key-dialogs";
+
+const SORT_OPTIONS = {
+  creadas: "Creación: más recientes",
+  "creadas-antiguas": "Creación: más antiguas",
+  uso: "Último uso: más reciente",
+  "uso-antiguo": "Último uso: más antiguo",
+} as const;
+type SortOption = keyof typeof SORT_OPTIONS;
+type StatusFilter = "todas" | "activas" | "inactivas";
+
+const isSortOption = (value: string | null): value is SortOption =>
+  value !== null && value in SORT_OPTIONS;
+const time = (value: string | null) => (value ? Date.parse(value) : null);
+
+/** Ordena sin mutar. En "último uso" las claves que nunca se usaron van siempre al final. */
+function sortKeys(items: ApiKey[], sort: SortOption): ApiKey[] {
+  return [...items].sort((a, b) => {
+    if (sort === "creadas" || sort === "creadas-antiguas") {
+      const diff = Date.parse(b.created_at) - Date.parse(a.created_at);
+      return sort === "creadas" ? diff : -diff;
+    }
+    const usedA = time(a.last_used_at);
+    const usedB = time(b.last_used_at);
+    if (usedA === null || usedB === null)
+      return usedA === usedB ? 0 : usedA === null ? 1 : -1;
+    return sort === "uso" ? usedB - usedA : usedA - usedB;
+  });
+}
 
 export function KeysPage() {
   const queryClient = useQueryClient();
@@ -32,6 +72,27 @@ export function KeysPage() {
     queryKey: ["keys"],
     queryFn: () => api<{ data: ApiKey[] }>("/api/admin/api-keys"),
   });
+  // Los filtros viven en la URL para que se mantengan al recargar o compartir el enlace
+  const [params, setParams] = useSearchParams();
+  const search = params.get("q") ?? "";
+  const sortParam = params.get("orden");
+  const sort: SortOption = isSortOption(sortParam) ? sortParam : "creadas";
+  const statusParam = params.get("estado");
+  const status: StatusFilter =
+    statusParam === "activas" || statusParam === "inactivas"
+      ? statusParam
+      : "todas";
+  const owner = params.get("creador") ?? "todos";
+  const updateParam = (name: string, value: string, defaultValue: string) =>
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        if (value === defaultValue) next.delete(name);
+        else next.set(name, value);
+        return next;
+      },
+      { replace: true },
+    );
 
   useEffect(() => {
     if (!routeState?.openNewApiKey) return;
@@ -76,8 +137,30 @@ export function KeysPage() {
     void refresh();
   };
 
-  const activeKeys = keys.data?.data.filter((item) => item.is_active) ?? [];
-  const inactiveKeys = keys.data?.data.filter((item) => !item.is_active) ?? [];
+  const allKeys = useMemo(() => keys.data?.data ?? [], [keys.data?.data]);
+  const owners = useMemo(
+    () =>
+      [
+        ...new Map(allKeys.map((item) => [item.owner.id, item.owner])).values(),
+      ].sort((a, b) => a.name.localeCompare(b.name, "es")),
+    [allKeys],
+  );
+  // Búsqueda y creador se aplican a las dos secciones; el estado decide qué secciones se ven
+  const filteredKeys = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return sortKeys(
+      allKeys.filter(
+        (item) =>
+          (owner === "todos" || String(item.owner.id) === owner) &&
+          (!term ||
+            `${item.name} ${item.key_prefix}`.toLowerCase().includes(term)),
+      ),
+      sort,
+    );
+  }, [allKeys, owner, search, sort]);
+  const activeKeys = filteredKeys.filter((item) => item.is_active);
+  const inactiveKeys = filteredKeys.filter((item) => !item.is_active);
+  const hasFilters = Boolean(search) || owner !== "todos" || status !== "todas";
 
   return (
     <div className="grid min-w-0 gap-6">
@@ -145,19 +228,118 @@ export function KeysPage() {
         </Card>
       ) : (
         <div className="grid gap-8">
-          <KeySection
-            title="Activas"
-            active
-            items={activeKeys}
-            onRename={setRenaming}
-            onToggle={requestKeyToggle}
-          />
-          <KeySection
-            title="Inactivas"
-            items={inactiveKeys}
-            onRename={setRenaming}
-            onToggle={requestKeyToggle}
-          />
+          <Card className="rounded-2xl">
+            <CardContent className="grid gap-3 p-4 sm:p-5 lg:grid-cols-[minmax(200px,1fr)_auto_auto_auto] lg:items-center">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  aria-label="Buscar API keys"
+                  placeholder="Buscar por nombre o prefijo..."
+                  value={search}
+                  onChange={(event) => updateParam("q", event.target.value, "")}
+                  className="h-10 rounded-xl pl-9"
+                />
+              </div>
+              <div
+                className="flex flex-wrap gap-1 rounded-xl bg-muted p-1"
+                role="tablist"
+                aria-label="Filtrar por estado"
+              >
+                {(
+                  [
+                    ["todas", "Todas", filteredKeys.length],
+                    ["activas", "Activas", activeKeys.length],
+                    ["inactivas", "Inactivas", inactiveKeys.length],
+                  ] as const
+                ).map(([value, label, count]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="tab"
+                    aria-selected={status === value}
+                    onClick={() => updateParam("estado", value, "todas")}
+                    className={`rounded-lg px-3 py-2 text-xs font-semibold ${status === value ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {label} <span className="ml-1 opacity-70">{count}</span>
+                  </button>
+                ))}
+              </div>
+              <Select
+                value={sort}
+                onValueChange={(value) =>
+                  updateParam("orden", value, "creadas")
+                }
+              >
+                <SelectTrigger
+                  aria-label="Ordenar API keys"
+                  className="h-10 w-full rounded-xl lg:w-56"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(SORT_OPTIONS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={owner}
+                onValueChange={(value) =>
+                  updateParam("creador", value, "todos")
+                }
+              >
+                <SelectTrigger
+                  aria-label="Filtrar por creador"
+                  className="h-10 w-full rounded-xl lg:w-48"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los creadores</SelectItem>
+                  {owners.map((item) => (
+                    <SelectItem key={item.id} value={String(item.id)}>
+                      {item.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+          {filteredKeys.length === 0 && hasFilters ? (
+            <div className="grid justify-items-center gap-3 rounded-2xl border border-dashed border-border p-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                Ninguna API key coincide con los filtros.
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => setParams({}, { replace: true })}
+              >
+                Quitar filtros
+              </Button>
+            </div>
+          ) : (
+            <>
+              {status !== "inactivas" && (
+                <KeySection
+                  title="Activas"
+                  active
+                  items={activeKeys}
+                  onRename={setRenaming}
+                  onToggle={requestKeyToggle}
+                />
+              )}
+              {status !== "activas" && (
+                <KeySection
+                  title="Inactivas"
+                  items={inactiveKeys}
+                  onRename={setRenaming}
+                  onToggle={requestKeyToggle}
+                />
+              )}
+            </>
+          )}
         </div>
       )}
 
