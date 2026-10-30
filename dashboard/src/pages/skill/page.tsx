@@ -123,7 +123,8 @@ export function SkillPage() {
             <Copy />
             Copiar
           </Button>
-          <pre className="overflow-x-auto p-4 pr-24 text-xs leading-6">
+          {/* Dentro del bloque, el código no lleva el fondo de "código en línea": sobre el fondo oscuro lo volvía ilegible */}
+          <pre className="overflow-x-auto p-4 pr-24 text-xs leading-6 [&_code]:rounded-none [&_code]:bg-transparent [&_code]:p-0 [&_code]:text-[length:inherit] [&_code]:text-stone-100">
             {children}
           </pre>
         </div>
