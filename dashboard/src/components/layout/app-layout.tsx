@@ -270,16 +270,7 @@ export function AppLayout() {
               Acortador de URLs
             </span>
           </Link>
-          <Button
-            type="button"
-            variant="outline"
-            className="ml-auto h-10 justify-start gap-2 rounded-xl text-muted-foreground lg:hidden"
-            onClick={openPalette}
-            aria-label="Buscar en el dashboard"
-          >
-            <Search className="size-4" />
-            <span className="hidden min-[380px]:inline">Buscar</span>
-          </Button>
+          {/* En celular y tablet la búsqueda se abre desde la barra inferior o con Ctrl/⌘ K */}
           <div className="hidden flex-1 justify-center lg:flex">
             <Button
               variant="outline"
