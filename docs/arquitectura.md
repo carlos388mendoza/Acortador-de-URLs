@@ -61,6 +61,7 @@ Aplicación web de uso general (estilo dub.co) que acorta URLs y ofrece un dashb
 - Variables de entorno en Vercel: `DATABASE_URL`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `BASE_URL`, `LOGIN_MAX_ATTEMPTS`, `LOGIN_WINDOW_MINUTES`, `URL_RATE_LIMIT_PER_MINUTE`, `API_KEY_RATE_LIMIT_PER_MINUTE`, `NPM_CONFIG_PRODUCTION`, `NPM_CONFIG_INCLUDE`.
 - Build: `npm run build` compila el dashboard a `public/dashboard`, genera el bundle `api/index.js` y ejecuta el typecheck (solo en local/CI).
 - El dashboard se sirve como SPA desde `/dashboard/*` con fallback a `index.html`.
+- Cada merge a `main` debe dejar en GitHub el estado **Vercel = success** en su commit. Si falta (Vercel no recibió el push y no aparece ningún despliegue, ni siquiera cancelado), se vuelve a desplegar con **Redeploy** del último despliegue de producción en el panel de Vercel o con un commit nuevo en `main` vía PR.
 
 ## Decisiones técnicas clave
 
