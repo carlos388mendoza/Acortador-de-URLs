@@ -5,3 +5,4 @@ dist
 screenshots/
 playwright-report/
 test-results/
+.qr-csp-build

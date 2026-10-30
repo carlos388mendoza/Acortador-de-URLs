@@ -79,7 +79,11 @@ export function QrDialog({ url, onClose }: QrDialogProps) {
   const [size, setSize] = useState(280);
   const [logo, setLogo] = useState<string | undefined>(PROJECT_LOGO);
   // Resultado del último dibujo; si sus opciones no son las actuales, la vista previa se está generando
-  const [drawn, setDrawn] = useState<{ key: string; ok: boolean } | null>(null);
+  const [drawn, setDrawn] = useState<{
+    key: string;
+    ok: boolean;
+    logoFailed: boolean;
+  } | null>(null);
   const optionsKey = JSON.stringify([
     url.short_url,
     color,
@@ -98,33 +102,49 @@ export function QrDialog({ url, onClose }: QrDialogProps) {
     let active = true;
     void (async () => {
       try {
-        // Si el logo no se puede leer, el QR se dibuja sin logo en lugar de quedarse en blanco
+        const { default: QRCodeStyling } = await import("qr-code-styling");
+        const draw = async (image: string | undefined) => {
+          const qr = new QRCodeStyling({
+            width: size,
+            height: size,
+            type: "svg",
+            data: url.short_url,
+            image,
+            margin: 8,
+            dotsOptions: { color, type: "rounded" },
+            cornersSquareOptions: { color },
+            backgroundOptions: { color: background },
+            // saveAsBlob: false. El logo ya llega como data: URL y se incrusta tal cual. Con true,
+            // la librería lo vuelve a pedir con XMLHttpRequest, la CSP (connect-src) lo bloquea
+            // y el dibujo se queda esperando para siempre.
+            imageOptions: { margin: 5, imageSize: 0.25, saveAsBlob: false },
+          });
+          // Espera a que el SVG esté dibujado; la vista previa anterior se queda hasta entonces
+          await withTimeout(qr.getRawData("svg"), LOAD_TIMEOUT_MS);
+          return qr;
+        };
+
+        // Si el logo no se puede leer o dibujar, el QR se muestra igual, sin logo
         const image = logo
           ? await prepareLogo(logo).catch(() => undefined)
           : undefined;
-        const { default: QRCodeStyling } = await import("qr-code-styling");
-        const qr = new QRCodeStyling({
-          width: size,
-          height: size,
-          type: "svg",
-          data: url.short_url,
-          image,
-          margin: 8,
-          dotsOptions: { color, type: "rounded" },
-          cornersSquareOptions: { color },
-          backgroundOptions: { color: background },
-          imageOptions: { margin: 5, imageSize: 0.25 },
-        });
-        // Espera a que el SVG esté dibujado; la vista previa anterior se queda hasta entonces
-        await withTimeout(qr.getRawData("svg"), LOAD_TIMEOUT_MS);
+        let logoFailed = Boolean(logo) && !image;
+        let qr: QRCodeStyling;
+        try {
+          qr = await draw(image);
+        } catch (reason) {
+          if (!image) throw reason;
+          logoFailed = true;
+          qr = await draw(undefined);
+        }
         if (!active) return;
         qrCode.current = qr;
         preview.replaceChildren();
         qr.append(preview);
-        setDrawn({ key: optionsKey, ok: true });
+        setDrawn({ key: optionsKey, ok: true, logoFailed });
         setCanDownload(true);
       } catch {
-        if (active) setDrawn({ key: optionsKey, ok: false });
+        if (active) setDrawn({ key: optionsKey, ok: false, logoFailed: false });
       }
     })();
 
@@ -194,6 +214,14 @@ export function QrDialog({ url, onClose }: QrDialogProps) {
             >
               {url.short_url}
             </p>
+            {status === "ready" && drawn?.logoFailed && (
+              <p
+                role="status"
+                className="text-center text-sm text-muted-foreground"
+              >
+                No se pudo cargar el logo; se muestra el QR sin logo.
+              </p>
+            )}
             {status === "error" && (
               <p role="alert" className="text-center text-sm text-destructive">
                 No se pudo generar la vista previa. Cambia una opción para
@@ -216,7 +244,8 @@ export function QrDialog({ url, onClose }: QrDialogProps) {
                     aria-label={label}
                     title={label}
                     onClick={() => setColor(value)}
-                    className={`size-8 rounded-full border ${color === value ? "ring-2 ring-brand ring-offset-2" : ""}`}
+                    aria-pressed={color === value}
+                    className={`size-8 rounded-full border border-border ${color === value ? "ring-2 ring-brand ring-offset-2 ring-offset-background" : ""}`}
                     style={{ backgroundColor: value }}
                   />
                 ))}
@@ -229,16 +258,34 @@ export function QrDialog({ url, onClose }: QrDialogProps) {
                 />
               </div>
             </div>
-            <Label className="grid gap-2">
-              Color de fondo
-              <Input
-                aria-label="Color de fondo"
-                type="color"
-                value={background}
-                onChange={(event) => setBackground(event.target.value)}
-                className="h-10 p-1"
-              />
-            </Label>
+            <div className="grid gap-2">
+              <Label>Color de fondo</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                {[
+                  ["#ffffff", "Blanco"],
+                  ["#f5efe6", "Beige"],
+                  ["#e7e5e4", "Gris claro"],
+                ].map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-label={`Fondo ${label.toLowerCase()}`}
+                    aria-pressed={background === value}
+                    title={label}
+                    onClick={() => setBackground(value)}
+                    className={`size-8 rounded-full border border-border ${background === value ? "ring-2 ring-brand ring-offset-2 ring-offset-background" : ""}`}
+                    style={{ backgroundColor: value }}
+                  />
+                ))}
+                <Input
+                  aria-label="Color de fondo personalizado"
+                  type="color"
+                  value={background}
+                  onChange={(event) => setBackground(event.target.value)}
+                  className="size-9 cursor-pointer p-1"
+                />
+              </div>
+            </div>
             <div className="grid gap-2">
               <Label>Logo</Label>
               <div className="flex flex-wrap gap-2">
@@ -286,6 +333,7 @@ export function QrDialog({ url, onClose }: QrDialogProps) {
                 step="20"
                 value={size}
                 onChange={(event) => setSize(Number(event.target.value))}
+                className="h-auto cursor-pointer border-0 bg-transparent p-0 accent-brand shadow-none dark:bg-transparent"
               />
               <span className="text-xs text-muted-foreground">
                 {size} × {size} px
