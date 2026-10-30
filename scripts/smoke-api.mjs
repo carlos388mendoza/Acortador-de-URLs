@@ -32,10 +32,11 @@ async function check(name, path, init, expectedStatus, expectedBody) {
   const bodyOk =
     expectedBody === undefined ||
     Object.entries(expectedBody).every(([field, value]) => body?.[field] === value)
-  const ok = response.status === expectedStatus && bodyOk
+  const statuses = Array.isArray(expectedStatus) ? expectedStatus : [expectedStatus]
+  const ok = statuses.includes(response.status) && bodyOk
   if (!ok) failures++
   console.log(
-    `${ok ? '✓' : '✗'} ${name} | esperado ${expectedStatus} | obtenido ${response.status}${bodyOk ? '' : ` | cuerpo ${text.slice(0, 120)}`}`,
+    `${ok ? '✓' : '✗'} ${name} | esperado ${statuses.join(' o ')} | obtenido ${response.status}${bodyOk ? '' : ` | cuerpo ${text.slice(0, 120)}`}`,
   )
   return body
 }
@@ -65,7 +66,8 @@ const created = await check('POST válido (x-api-key)', '/api/urls/new', { metho
 createdCode = typeof created === 'object' && created ? created.code : ''
 await check('GET válido (Bearer)', `/api/urls/${createdCode}`, { headers: { Authorization: `Bearer ${key}` } }, 200)
 await check('GET código inexistente + clave', '/api/urls/no-existe-smoke', { headers: withKey() }, 404, { error: 'URL no encontrada' })
-await check('GET código con % mal codificado + clave', '/api/urls/%E0%A4%A', { headers: withKey() }, 404)
+// En local responde la app (404); en Vercel la plataforma rechaza la URL antes con un 400. Nunca debe ser 500
+await check('GET código con % mal codificado + clave', '/api/urls/%E0%A4%A', { headers: withKey() }, [400, 404])
 await check('Redirección /{code} sin clave', `/${createdCode}`, {}, 302)
 
 if (session) {
