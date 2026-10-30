@@ -8,7 +8,6 @@ import {
 } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ChevronDown,
   House,
   LogOut,
   Menu,
@@ -187,7 +186,11 @@ export function AppLayout() {
         </Link>
         <div className="mb-4 h-px shrink-0 bg-border" />
         <SideNavigation {...sidebarProps} />
-        <div className="mt-4 shrink-0 border-t border-border pt-3">
+        {/* Pie compacto en una sola fila: deja más alto para la lista de navegación */}
+        <div
+          data-slot="sidebar-footer"
+          className="mt-3 flex shrink-0 items-center gap-1 border-t border-border pt-3"
+        >
           <DropdownMenu
             open={openLayer === "account" && isDesktop}
             onOpenChange={(open) =>
@@ -200,10 +203,10 @@ export function AppLayout() {
               <Button
                 type="button"
                 variant="ghost"
-                className="h-auto w-full justify-start gap-3 rounded-xl p-2"
+                className="h-auto min-w-0 flex-1 justify-start gap-2.5 rounded-xl p-1.5"
                 aria-label="Abrir menú de cuenta"
               >
-                <Avatar className="size-10">
+                <Avatar className="size-9 shrink-0">
                   <AvatarFallback className="bg-primary font-bold text-primary-foreground">
                     {initials}
                   </AvatarFallback>
@@ -213,10 +216,9 @@ export function AppLayout() {
                     {data?.user.name ?? "Cuenta"}
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">
-                    {data?.user.email} · {data?.user.role}
+                    {data?.user.email}
                   </span>
                 </span>
-                <ChevronDown className="size-4 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
@@ -231,20 +233,8 @@ export function AppLayout() {
               />
             </DropdownMenuContent>
           </DropdownMenu>
-          <div className="mt-2 grid gap-2">
-            <p className="px-1 text-xs font-semibold text-muted-foreground">
-              Tema
-            </p>
-            <ThemeControl />
-          </div>
-          <Button
-            variant="outline"
-            className="mt-2 w-full rounded-xl"
-            onClick={requestLogout}
-          >
-            <LogOut className="size-4" />
-            Cerrar sesión
-          </Button>
+          <ThemeControl compact />
+          <LogoutIconButton onClick={requestLogout} />
         </div>
       </aside>
 
@@ -319,41 +309,34 @@ export function AppLayout() {
             </SheetTitle>
           </SheetHeader>
           <SideNavigation {...sidebarProps} />
-          <div className="mt-4 shrink-0 border-t border-border pt-3">
-            <div className="mb-2 flex min-w-0 items-center gap-3">
-              <Avatar className="size-10">
+          {/* Pie compacto: tocar la tarjeta abre Mi perfil; tema y salida quedan como íconos */}
+          <div
+            data-slot="sidebar-footer"
+            className="mt-3 flex shrink-0 items-center gap-1 border-t border-border pt-3"
+          >
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-auto min-w-0 flex-1 justify-start gap-2.5 rounded-xl p-1.5"
+              aria-label="Ir a Mi perfil"
+              onClick={goToProfile}
+            >
+              <Avatar className="size-9 shrink-0">
                 <AvatarFallback className="bg-primary font-bold text-primary-foreground">
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <span className="min-w-0">
+              <span className="min-w-0 flex-1 text-left">
                 <span className="block truncate text-sm font-bold">
                   {data?.user.name}
                 </span>
                 <span className="block truncate text-xs text-muted-foreground">
-                  {data?.user.email} · {data?.user.role}
+                  Mi perfil
                 </span>
               </span>
-            </div>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={goToProfile}
-            >
-              Mi perfil
             </Button>
-            <p className="mb-2 mt-2 text-xs font-semibold text-muted-foreground">
-              Tema
-            </p>
-            <ThemeControl />
-            <Button
-              variant="outline"
-              className="mt-2 w-full rounded-xl"
-              onClick={requestLogout}
-            >
-              <LogOut className="size-4" />
-              Cerrar sesión
-            </Button>
+            <ThemeControl compact />
+            <LogoutIconButton onClick={requestLogout} />
           </div>
         </SheetContent>
       </Sheet>
@@ -476,5 +459,21 @@ function MobileNavItem({
       <Icon className="size-5" />
       {label}
     </NavLink>
+  );
+}
+
+function LogoutIconButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button
+      type="button"
+      size="icon"
+      variant="ghost"
+      aria-label="Cerrar sesión"
+      title="Cerrar sesión"
+      onClick={onClick}
+      className="size-9 shrink-0 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+    >
+      <LogOut className="size-4" />
+    </Button>
   );
 }
