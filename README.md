@@ -43,6 +43,7 @@ En Vercel se configuran en *Settings → Environment Variables*; después hay qu
 | `npm run build` | Instala y compila `dashboard/` hacia `public/dashboard` (si existe) y luego hace typecheck |
 | `npm run db:push` / `db:studio` | Sincroniza el esquema con Neon / abre Drizzle Studio |
 | `npm run seed:admin` | Crea o actualiza el administrador con `ADMIN_EMAIL` y `ADMIN_PASSWORD` |
+| `npm run smoke:api` | Pruebas de humo de la API contra un servidor en marcha (`SMOKE_BASE_URL`, `SMOKE_API_KEY`; opcional `SMOKE_SESSION`) |
 | `npm run seed:demo` | Crea 12 URLs `demo-*` con ~900 clics repartidos en 30 días |
 
 ### Estructura

@@ -2,6 +2,7 @@ import { OpenAPIHono } from '@hono/zod-openapi'
 import { Scalar } from '@scalar/hono-api-reference'
 // Importación directa para que Vercel detecte el framework Hono al desplegar
 import 'hono'
+import { HTTPException } from 'hono/http-exception'
 import { FAVICON_ICO, LOGO_PNG } from './lib/branding'
 import { securityHeaders } from './middleware/security'
 import { SKILL_CONTENT } from './lib/skill-content'
@@ -118,6 +119,13 @@ app.get('/branding/logo.png', (c) =>
 
 api.notFound((c) => c.json({ error: 'Ruta no encontrada' }, 404))
 api.onError((err, c) => {
+  // Errores del cliente que detecta Hono (p. ej. un body con JSON mal escrito) nunca son un 500
+  if (err instanceof HTTPException && err.status < 500) {
+    const message = c.req.path.startsWith('/api/urls')
+      ? 'La URL proporcionada no es válida'
+      : 'El cuerpo de la petición no es un JSON válido'
+    return c.json({ error: message }, 400)
+  }
   console.error(err)
   return c.json({ error: 'Error interno del servidor' }, 500)
 })

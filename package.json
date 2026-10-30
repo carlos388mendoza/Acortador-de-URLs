@@ -11,15 +11,16 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "seed:admin": "tsx --env-file=.env scripts/seed-admin.ts",
-    "seed:demo": "tsx --env-file=.env scripts/seed-demo.ts"
+    "seed:demo": "tsx --env-file=.env scripts/seed-demo.ts",
+    "smoke:api": "node scripts/smoke-api.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.5",
     "@hono/zod-openapi": "^1.6.3",
     "@neondatabase/serverless": "^1.2.0",
     "@scalar/hono-api-reference": "^0.12.16",
-    "@vercel/functions": "^3.10.4",
     "@types/node": "^26.6.6",
+    "@vercel/functions": "^3.10.4",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.4",
     "esbuild": "^0.25.0",
