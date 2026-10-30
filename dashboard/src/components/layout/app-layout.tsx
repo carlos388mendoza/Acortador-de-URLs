@@ -418,9 +418,6 @@ export function AppLayout() {
           {/* La celda mide lo mismo que las demás (h-12); el círculo de 44px queda dentro de la barra */}
           <span className="grid size-11 place-content-center place-items-center gap-0.5 rounded-full bg-primary text-primary-foreground shadow-sm group-hover:bg-primary/90">
             <Plus className="size-5" />
-            <span className="text-[10px] font-semibold leading-none">
-              Nuevo
-            </span>
           </span>
         </button>
         <MobileNavItem to="/urls" label="URLs" icon={QrCode} />

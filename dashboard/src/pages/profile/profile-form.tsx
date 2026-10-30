@@ -86,17 +86,17 @@ export function ProfileForm({ user }: { user: User }) {
               Actualiza tu nombre y correo de acceso.
             </p>
           </div>
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 sm:flex">
             <div className="grid size-12 shrink-0 place-items-center rounded-full bg-primary font-heading text-lg font-bold text-primary-foreground">
               {initials}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate font-bold">{user.name}</p>
               <p className="truncate text-sm text-muted-foreground">
                 {user.email}
               </p>
             </div>
-            <Badge className="shrink-0 bg-muted text-muted-foreground">
+            <Badge className="col-start-2 justify-self-start shrink-0 bg-muted text-muted-foreground">
               <ShieldCheck className="mr-1 size-3" />
               {user.role === "admin" ? "Administrador" : "Usuario"}
             </Badge>
