@@ -1,6 +1,12 @@
 import { useMemo, useState } from "react";
 import { Plus, Search, Users } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  LIVE_INTERVALS,
+  liveQuery,
+  refreshEverywhere,
+  useNewIds,
+} from "@/lib/live";
 import { toast } from "sonner";
 import { api, apiDelete } from "@/api/client";
 import type { ApiUserResponse, Page, User } from "@/types";
@@ -14,7 +20,8 @@ import { UserDialog } from "./user-dialog";
 import { PageHeading } from "@/components/layout/page-heading";
 import { Input } from "@/components/ui/input";
 
-export function UsersPage() {
+/** `embedded`: dentro de Administración, que ya muestra el indicador en vivo en su encabezado. */
+export function UsersPage({ embedded = false }: { embedded?: boolean }) {
   const client = useQueryClient();
   const me = useQuery({
     queryKey: ["me"],
@@ -28,12 +35,12 @@ export function UsersPage() {
     queryKey: ["users"],
     queryFn: () => api<Page<User>>("/api/admin/users?page=1&limit=100"),
     enabled: me.data?.user.role === "admin",
+    ...liveQuery(LIVE_INTERVALS.lists),
   });
-  const refresh = () => {
-    void client.invalidateQueries({ queryKey: ["users"] });
-    void client.invalidateQueries({ queryKey: ["stats", "summary"] });
-  };
+  const refresh = () =>
+    refreshEverywhere(client, [["users"], ["stats", "summary"]]);
 
+  const freshIds = useNewIds(users.data?.data.map((user) => user.id));
   const filteredUsers = useMemo(() => {
     const term = search.trim().toLocaleLowerCase();
     return (users.data?.data ?? []).filter((user) => {
@@ -82,6 +89,7 @@ export function UsersPage() {
       <PageHeading
         label="Administración"
         title="Usuarios"
+        live={!embedded}
         subtitle="Personas con acceso al dashboard."
       />
       <Card className="rounded-2xl">
@@ -140,7 +148,7 @@ export function UsersPage() {
       </Card>
       {users.isPending ? (
         <LoadingCards />
-      ) : users.error ? (
+      ) : users.isLoadingError ? (
         <Card>
           <CardContent className="p-8 text-center text-destructive">
             {errorMessage(users.error)}
@@ -163,6 +171,7 @@ export function UsersPage() {
             title="Administradores"
             red
             items={visibleAdmins}
+            freshIds={freshIds}
             currentId={me.data.user.id}
             onEdit={setEditing}
             onDelete={setDeleting}
@@ -170,6 +179,7 @@ export function UsersPage() {
           <UserSection
             title="Usuarios"
             items={visibleUsers}
+            freshIds={freshIds}
             currentId={me.data.user.id}
             onEdit={setEditing}
             onDelete={setDeleting}
@@ -201,6 +211,7 @@ function UserSection({
   title,
   red = false,
   items,
+  freshIds,
   currentId,
   onEdit,
   onDelete,
@@ -208,6 +219,7 @@ function UserSection({
   title: string;
   red?: boolean;
   items: User[];
+  freshIds: ReadonlySet<number | string>;
   currentId: number;
   onEdit: (user: User) => void;
   onDelete: (user: User) => void;
@@ -227,6 +239,7 @@ function UserSection({
               key={user.id}
               user={user}
               isCurrent={user.id === currentId}
+              isNew={freshIds.has(user.id)}
               onEdit={onEdit}
               onDelete={onDelete}
             />

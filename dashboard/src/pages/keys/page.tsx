@@ -7,6 +7,12 @@ import {
 } from "react-router-dom";
 import { KeyRound, Plus, Search } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  LIVE_INTERVALS,
+  liveQuery,
+  refreshEverywhere,
+  useNewIds,
+} from "@/lib/live";
 import { toast } from "sonner";
 import { api, apiPatch } from "@/api/client";
 import type { ApiKey } from "@/types";
@@ -71,6 +77,7 @@ export function KeysPage() {
   const keys = useQuery({
     queryKey: ["keys"],
     queryFn: () => api<{ data: ApiKey[] }>("/api/admin/api-keys"),
+    ...liveQuery(LIVE_INTERVALS.lists),
   });
   // Los filtros viven en la URL para que se mantengan al recargar o compartir el enlace
   const [params, setParams] = useSearchParams();
@@ -108,10 +115,8 @@ export function KeysPage() {
     return () => window.removeEventListener("new-api-key", openCreateDialog);
   }, []);
 
-  const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: ["keys"] });
-    void queryClient.invalidateQueries({ queryKey: ["stats", "summary"] });
-  };
+  const refresh = () =>
+    refreshEverywhere(queryClient, [["keys"], ["stats", "summary"]]);
 
   const toggleKey = async (apiKey: ApiKey, isActive: boolean) => {
     try {
@@ -158,6 +163,7 @@ export function KeysPage() {
       sort,
     );
   }, [allKeys, owner, search, sort]);
+  const freshIds = useNewIds(allKeys.map((item) => item.id));
   const activeKeys = filteredKeys.filter((item) => item.is_active);
   const inactiveKeys = filteredKeys.filter((item) => !item.is_active);
   const hasFilters = Boolean(search) || owner !== "todos" || status !== "todas";
@@ -167,6 +173,7 @@ export function KeysPage() {
       <PageHeading
         label="Desarrolladores"
         title="API keys"
+        live
         subtitle="Claves para usar la API desde otros sistemas."
         action={
           <Button
@@ -209,7 +216,7 @@ export function KeysPage() {
 
       {keys.isPending ? (
         <LoadingCards />
-      ) : keys.error ? (
+      ) : keys.isLoadingError ? (
         <Card>
           <CardContent className="p-8 text-center text-destructive">
             {errorMessage(keys.error)}
@@ -326,6 +333,7 @@ export function KeysPage() {
                   title="Activas"
                   active
                   items={activeKeys}
+                  freshIds={freshIds}
                   onRename={setRenaming}
                   onToggle={requestKeyToggle}
                 />
@@ -334,6 +342,7 @@ export function KeysPage() {
                 <KeySection
                   title="Inactivas"
                   items={inactiveKeys}
+                  freshIds={freshIds}
                   onRename={setRenaming}
                   onToggle={requestKeyToggle}
                 />
@@ -378,12 +387,14 @@ function KeySection({
   title,
   active = false,
   items,
+  freshIds,
   onRename,
   onToggle,
 }: {
   title: string;
   active?: boolean;
   items: ApiKey[];
+  freshIds: ReadonlySet<number | string>;
   onRename: (item: ApiKey) => void;
   onToggle: (item: ApiKey, isActive: boolean) => void;
 }) {
@@ -401,6 +412,7 @@ function KeySection({
             <ApiKeyCard
               key={item.id}
               apiKey={item}
+              isNew={freshIds.has(item.id)}
               onRename={onRename}
               onToggle={onToggle}
             />

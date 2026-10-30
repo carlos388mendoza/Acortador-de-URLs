@@ -1,6 +1,7 @@
 import { KeyRound, MousePointerClick, QrCode, Users } from "lucide-react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { liveRead } from "@/lib/live";
 import { api } from "@/api/client";
 import type { ApiUserResponse, Summary } from "@/types";
 import { LoadingCards } from "@/components/shared/loading-cards";
@@ -19,6 +20,8 @@ export function AdminPage() {
     queryKey: ["stats", "summary"],
     queryFn: () => api<Summary>("/api/admin/stats/summary"),
     enabled: me.data?.user.role === "admin" && activeTab === "summary",
+    // El ciclo lo lleva la barra lateral (misma consulta)
+    ...liveRead,
   });
 
   if (me.isPending) return <LoadingCards />;
@@ -29,6 +32,7 @@ export function AdminPage() {
       <PageHeading
         label="Equipo"
         title="Administración"
+        live
         subtitle="Control general de la aplicación."
       />
       <div
@@ -56,10 +60,10 @@ export function AdminPage() {
         </button>
       </div>
       {activeTab === "users" ? (
-        <UsersPage />
+        <UsersPage embedded />
       ) : summary.isPending ? (
         <LoadingCards />
-      ) : summary.error ? (
+      ) : summary.isLoadingError ? (
         <Card>
           <CardContent className="p-6 text-destructive">
             No se pudo cargar el resumen de administración.

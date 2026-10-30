@@ -16,11 +16,13 @@ export function UserCard({
   onEdit,
   onDelete,
   isCurrent = false,
+  isNew = false,
 }: {
   user: User;
   onEdit: (user: User) => void;
   onDelete: (user: User) => void;
   isCurrent?: boolean;
+  isNew?: boolean;
 }) {
   const initials = user.name
     .split(/\s+/)
@@ -31,7 +33,10 @@ export function UserCard({
   const admin = user.role === "admin";
 
   return (
-    <Card className="min-w-0 rounded-2xl">
+    <Card
+      className={`min-w-0 rounded-2xl${isNew ? " live-enter" : ""}`}
+      data-live-new={isNew ? "" : undefined}
+    >
       <CardHeader className="flex-row items-center gap-3">
         <div
           className="grid size-11 shrink-0 place-items-center rounded-full bg-primary font-bold text-primary-foreground"

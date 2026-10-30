@@ -39,6 +39,7 @@ import { LogoutConfirmDialog } from "./logout-confirm-dialog";
 import { useKeyboardShortcuts } from "./keyboard-shortcuts";
 import { SideNavigation } from "./side-navigation";
 import { ThemeControl } from "./theme-control";
+import { useLiveSync } from "@/lib/live";
 import { Kbd } from "@/components/ui/kbd";
 
 const CommandPalette = lazy(() =>
@@ -56,6 +57,8 @@ export function AppLayout() {
   });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // Otras pestañas avisan cuando crean, editan o borran algo
+  useLiveSync(queryClient);
   const location = useLocation();
   const [isDesktop, setIsDesktop] = useState(
     () => window.matchMedia("(min-width: 1024px)").matches,
@@ -308,7 +311,7 @@ export function AppLayout() {
               </span>
             </SheetTitle>
           </SheetHeader>
-          <SideNavigation {...sidebarProps} />
+          <SideNavigation {...sidebarProps} poll={false} />
           {/* Pie compacto: tocar la tarjeta abre Mi perfil; tema y salida quedan como íconos */}
           <div
             data-slot="sidebar-footer"

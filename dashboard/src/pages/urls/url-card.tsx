@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { AdminUrl } from "@/types";
+import { LiveNumber } from "@/components/shared/live-number";
 import { relativeDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,9 +27,17 @@ type UrlCardProps = {
   onEdit: (url: AdminUrl) => void;
   onDelete: (url: AdminUrl) => void;
   onQr: (url: AdminUrl) => void;
+  /** Apareció en una actualización automática: entra con una animación suave. */
+  isNew?: boolean;
 };
 
-export function UrlCard({ url, onEdit, onDelete, onQr }: UrlCardProps) {
+export function UrlCard({
+  url,
+  onEdit,
+  onDelete,
+  onQr,
+  isNew = false,
+}: UrlCardProps) {
   const domain = (() => {
     try {
       return new URL(url.url).hostname;
@@ -46,7 +55,10 @@ export function UrlCard({ url, onEdit, onDelete, onQr }: UrlCardProps) {
   };
 
   return (
-    <Card className="min-w-0 overflow-hidden">
+    <Card
+      className={`min-w-0 overflow-hidden${isNew ? " live-enter" : ""}`}
+      data-live-new={isNew ? "" : undefined}
+    >
       <CardHeader className="flex-row items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground">
@@ -80,7 +92,7 @@ export function UrlCard({ url, onEdit, onDelete, onQr }: UrlCardProps) {
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <MousePointerClick className="size-3.5" />
-            {url.click_count} clics
+            <LiveNumber value={url.click_count} /> clics
           </span>
           <span className="inline-flex items-center gap-1">
             <Calendar className="size-3.5" />
