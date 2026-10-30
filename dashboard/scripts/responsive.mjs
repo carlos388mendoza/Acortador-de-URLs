@@ -184,6 +184,16 @@ try {
           throw new Error(
             `La barra superior no conserva la marca a ${width}px`,
           );
+        // #48: en celular y tablet la barra superior no lleva botón de búsqueda
+        if (
+          await page
+            .locator("header button:visible")
+            .filter({ hasText: /Buscar/ })
+            .count()
+        )
+          throw new Error(
+            `La barra superior muestra un botón de búsqueda a ${width}px`,
+          );
       }
       const readiness = {
         inicio: page.getByText("Acorta, comparte y mide tus enlaces"),
@@ -285,6 +295,18 @@ try {
           .waitFor();
         await page.keyboard.press("Escape");
       }
+      // #48: sin el botón de arriba, la paleta se abre desde "Buscar" de la barra inferior
+      await page
+        .locator('nav[aria-label="Navegación móvil"]')
+        .getByRole("button", { name: "Buscar" })
+        .click();
+      await page
+        .getByPlaceholder("Busca URLs, usuarios, keys o acciones...")
+        .waitFor({ state: "visible" });
+      await page.keyboard.press("Escape");
+      await page
+        .getByPlaceholder("Busca URLs, usuarios, keys o acciones...")
+        .waitFor({ state: "hidden" });
       await page.getByRole("button", { name: "Abrir menú lateral" }).click();
       const sideSheet = page.locator(
         '[data-slot="sheet-content"][data-side="left"]',
