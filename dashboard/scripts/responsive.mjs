@@ -548,13 +548,103 @@ try {
   await page.goto(new URL("api-keys", baseUrl).toString(), {
     waitUntil: "domcontentloaded",
   });
-  await page.getByRole("button", { name: "Desactivar API key" }).click();
+  await page
+    .locator('[data-slot="card"]')
+    .filter({ hasText: "sk_12ab" })
+    .getByRole("button", { name: "Desactivar API key" })
+    .click();
   await page
     .getByRole("alertdialog")
     .getByRole("button", { name: "Desactivar" })
     .waitFor();
   await page.getByRole("alertdialog").getByText("sk_12ab").waitFor();
   await page.getByRole("button", { name: "Cancelar" }).click();
+
+  // #50: orden, creador, estado y búsqueda en API keys, aplicados también a las inactivas y guardados en la URL
+  const prefixesIn = (title) =>
+    page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: title, exact: true }) })
+      .locator('[data-slot="card"]')
+      .evaluateAll((cards) =>
+        cards.map((card) => card.textContent?.match(/sk_\w{4}/)?.[0] ?? "?"),
+      );
+  const expectKeys = async (label, active, inactive) => {
+    // Reintenta durante 3 s: tras cambiar un filtro, React vuelve a pintar las tarjetas
+    let got;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      got = {
+        active: await prefixesIn("Activas"),
+        inactive: await prefixesIn("Inactivas"),
+      };
+      if (JSON.stringify(got) === JSON.stringify({ active, inactive })) return;
+      await page.waitForTimeout(100);
+    }
+    if (JSON.stringify(got) !== JSON.stringify({ active, inactive }))
+      throw new Error(
+        `API keys (${label}): se esperaba ${JSON.stringify({ active, inactive })} y salió ${JSON.stringify(got)}`,
+      );
+  };
+  const choose = async (trigger, option) => {
+    await page.getByRole("combobox", { name: trigger }).click();
+    await page.getByRole("option", { name: option, exact: true }).click();
+  };
+  await expectKeys(
+    "orden por defecto",
+    ["sk_12ab", "sk_rep7", "sk_mov1"],
+    ["sk_tmp4", "sk_old9"],
+  );
+  await choose("Ordenar API keys", "Creación: más antiguas");
+  await expectKeys(
+    "creación antigua",
+    ["sk_mov1", "sk_rep7", "sk_12ab"],
+    ["sk_old9", "sk_tmp4"],
+  );
+  await choose("Ordenar API keys", "Último uso: más reciente");
+  await expectKeys(
+    "último uso",
+    ["sk_mov1", "sk_rep7", "sk_12ab"],
+    ["sk_old9", "sk_tmp4"],
+  );
+  await choose("Filtrar por creador", "Carlos Mendoza");
+  await expectKeys("creador", ["sk_mov1"], ["sk_old9"]);
+  if (!page.url().includes("orden=uso") || !page.url().includes("creador=2"))
+    throw new Error(
+      `Los filtros de API keys no quedaron en la URL: ${page.url()}`,
+    );
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page
+    .locator('[data-slot="card"]')
+    .filter({ hasText: "sk_mov1" })
+    .waitFor();
+  await expectKeys("después de recargar", ["sk_mov1"], ["sk_old9"]);
+  if (
+    !(
+      await page.getByRole("combobox", { name: "Ordenar API keys" }).innerText()
+    ).includes("Último uso: más reciente")
+  )
+    throw new Error("El orden de API keys no se conservó al recargar");
+  await page.getByRole("tab", { name: /^Inactivas/ }).click();
+  await page
+    .getByRole("heading", { name: "Activas", exact: true })
+    .waitFor({ state: "detached", timeout: 3000 })
+    .catch(() => {
+      throw new Error("El filtro Inactivas sigue mostrando las activas");
+    });
+  await expectKeys("solo inactivas", [], ["sk_old9"]);
+  await page
+    .getByRole("textbox", { name: "Buscar API keys" })
+    .fill("no-existe");
+  await page.getByText("Ninguna API key coincide con los filtros.").waitFor();
+  await page.getByRole("button", { name: "Quitar filtros" }).click();
+  await expectKeys(
+    "sin filtros",
+    ["sk_12ab", "sk_rep7", "sk_mov1"],
+    ["sk_tmp4", "sk_old9"],
+  );
+  if (new URL(page.url()).search !== "")
+    throw new Error(`Quitar filtros no limpió la URL: ${page.url()}`);
+  console.log(`✓ filtros de API keys en la URL (${themeLabel})`);
 
   await page.goto(new URL("users", baseUrl).toString(), {
     waitUntil: "domcontentloaded",
