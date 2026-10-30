@@ -14,10 +14,12 @@ import {
   Monitor,
   UserRound,
   Users,
+  X,
 } from "lucide-react";
 import { api } from "@/api/client";
 import type { AdminUrl, ApiKey, User } from "@/types";
 import { Kbd } from "@/components/ui/kbd";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandDialog,
@@ -111,7 +113,17 @@ export function CommandPalette({
               onValueChange={setSearch}
               className="h-11 border-0 text-base shadow-none focus-visible:outline-none focus-visible:ring-0"
             />
-            <Kbd className="shrink-0">Esc</Kbd>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="shrink-0 sm:hidden"
+              aria-label="Cerrar barra de comandos"
+              onClick={() => onOpenChange(false)}
+            >
+              <X className="size-4" />
+            </Button>
+            <Kbd className="hidden shrink-0 sm:inline-flex">Esc</Kbd>
           </div>
           <div className="mt-3 h-px bg-border" />
         </div>
