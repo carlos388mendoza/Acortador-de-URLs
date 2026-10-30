@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  LIVE_INTERVALS,
+  liveQuery,
+  refreshEverywhere,
+  useNewIds,
+} from "@/lib/live";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, QrCode } from "lucide-react";
 import { toast } from "sonner";
@@ -31,11 +37,18 @@ export function UrlsPage() {
   const search = params.get("search") || "";
   const urls = useQuery({
     queryKey: ["urls", page, search],
+    ...liveQuery(LIVE_INTERVALS.lists),
     queryFn: () =>
       api<Page<AdminUrl>>(
         `/api/admin/urls?page=${page}&limit=9&search=${encodeURIComponent(search)}`,
       ),
   });
+
+  // Al cambiar de página o de búsqueda no se animan los resultados: solo lo que aparece solo
+  const freshIds = useNewIds(
+    urls.data?.data.map((url) => url.id),
+    `${page}|${search}`,
+  );
 
   useEffect(() => {
     if (!routeState?.openNewUrl) return;
@@ -51,10 +64,8 @@ export function UrlsPage() {
     return () => window.removeEventListener("new-url", openCreateDialog);
   }, []);
 
-  const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: ["urls"] });
-    void queryClient.invalidateQueries({ queryKey: ["stats", "summary"] });
-  };
+  // Crear, editar o borrar una URL también cambia el resumen, los rankings y las demás pestañas
+  const refresh = () => refreshEverywhere(queryClient, [["urls"], ["stats"]]);
   const updateSearch = (value: string) =>
     setParams(value ? { search: value, page: "1" } : {});
 
@@ -76,6 +87,7 @@ export function UrlsPage() {
       <PageHeading
         label="Enlaces"
         title="URLs"
+        live
         subtitle="Todos los enlaces cortos del equipo."
         action={
           <Button
@@ -97,7 +109,7 @@ export function UrlsPage() {
 
       {urls.isPending ? (
         <LoadingCards />
-      ) : urls.error ? (
+      ) : urls.isLoadingError ? (
         <Card>
           <CardContent className="p-8 text-center text-destructive">
             {errorMessage(urls.error)}
@@ -123,6 +135,7 @@ export function UrlsPage() {
               onEdit={setEditing}
               onDelete={setDeleting}
               onQr={setQrUrl}
+              isNew={freshIds.has(url.id)}
             />
           ))}
         </div>

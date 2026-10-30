@@ -24,13 +24,18 @@ export function ApiKeyCard({
   apiKey,
   onRename,
   onToggle,
+  isNew = false,
 }: {
   apiKey: ApiKey;
+  isNew?: boolean;
   onRename: (apiKey: ApiKey) => void;
   onToggle: (apiKey: ApiKey, isActive: boolean) => void;
 }) {
   return (
-    <Card className="min-w-0 rounded-2xl">
+    <Card
+      className={`min-w-0 rounded-2xl${isNew ? " live-enter" : ""}`}
+      data-live-new={isNew ? "" : undefined}
+    >
       <CardHeader className="flex-row items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground">

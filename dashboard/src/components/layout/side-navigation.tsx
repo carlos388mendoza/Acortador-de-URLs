@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { api } from "@/api/client";
 import type { Summary } from "@/types";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
+import { LIVE_INTERVALS, liveQuery, liveRead } from "@/lib/live";
 import { Button } from "@/components/ui/button";
 import {
   adminNavItems,
@@ -15,16 +16,27 @@ type SideNavigationProps = {
   isAdmin: boolean;
   onNavigate?: () => void;
   onCreateUrl: () => void;
+  /** Solo la barra lateral fija consulta periódicamente; el panel móvil reutiliza sus datos. */
+  poll?: boolean;
 };
 
 export function SideNavigation({
   isAdmin,
   onNavigate,
   onCreateUrl,
+  poll = true,
 }: SideNavigationProps) {
+  const { pathname } = useLocation();
+  // Esta es la única consulta del resumen que lleva el ciclo: en Inicio cada 10 s, en el resto cada 15 s.
+  // Las páginas que también muestran el resumen solo leen la misma consulta, sin pedirla otra vez.
   const summary = useQuery({
     queryKey: ["stats", "summary"],
     queryFn: () => api<Summary>("/api/admin/stats/summary"),
+    ...(poll
+      ? liveQuery(
+          pathname === "/" ? LIVE_INTERVALS.home : LIVE_INTERVALS.sidebar,
+        )
+      : liveRead),
   });
   const counts: Record<string, number | undefined> = {
     URLs: summary.data?.total_urls,

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { LIVE_INTERVALS, liveQuery, liveRead, useNewIds } from "@/lib/live";
 import {
   ChartLine,
   Clock,
@@ -57,9 +58,12 @@ export function StatsPage() {
   const summary = useQuery({
     queryKey: ["stats", "summary"],
     queryFn: () => api<Summary>("/api/admin/stats/summary"),
+    // El ciclo de 10 s lo lleva la barra lateral (misma consulta): aquí solo se lee
+    ...liveRead,
   });
   const clicks = useQuery({
     queryKey: ["stats", "clicks", days],
+    ...liveQuery(LIVE_INTERVALS.home),
     queryFn: () =>
       api<{ data: ClickPoint[] }>(
         `/api/admin/stats/clicks-per-day?days=${days}`,
@@ -67,22 +71,28 @@ export function StatsPage() {
   });
   const popularUrls = useQuery({
     queryKey: ["stats", "top"],
+    ...liveQuery(LIVE_INTERVALS.home),
     queryFn: () =>
       api<{ data: AdminUrl[] }>("/api/admin/stats/top-urls?limit=6"),
   });
   const recentUrls = useQuery({
     queryKey: ["stats", "recent"],
+    ...liveQuery(LIVE_INTERVALS.home),
     queryFn: () =>
       api<{ data: AdminUrl[] }>("/api/admin/stats/recent-urls?limit=6"),
   });
   const creators = useQuery({
     queryKey: ["stats", "creators"],
+    ...liveQuery(LIVE_INTERVALS.home),
     queryFn: () =>
       api<{ data: CreatorStat[] }>("/api/admin/stats/top-creators?limit=6"),
   });
 
+  const freshRecentIds = useNewIds(recentUrls.data?.data.map((url) => url.id));
+
   if (summary.isPending) return <LoadingCards />;
-  if (summary.error) {
+  // Solo se muestra el error si nunca hubo datos; un fallo en una actualización automática no borra la pantalla
+  if (summary.isLoadingError) {
     return (
       <Card>
         <CardContent className="p-6 text-destructive">
@@ -97,6 +107,7 @@ export function StatsPage() {
       <PageHeading
         label="General"
         title="Inicio"
+        live
         subtitle="Resumen de tus enlaces y su actividad."
         action={
           <Button
@@ -178,7 +189,7 @@ export function StatsPage() {
         <CardContent>
           {clicks.isPending ? (
             <Skeleton className="h-64 w-full" />
-          ) : clicks.error ? (
+          ) : clicks.isLoadingError ? (
             <p className="p-6 text-sm text-destructive">
               {errorMessage(clicks.error)}
             </p>
@@ -247,7 +258,7 @@ export function StatsPage() {
           <CardContent className="grid gap-3">
             {popularUrls.isPending ? (
               <Skeleton className="h-32 w-full" />
-            ) : popularUrls.error ? (
+            ) : popularUrls.isLoadingError ? (
               <p className="text-sm text-destructive">
                 {errorMessage(popularUrls.error)}
               </p>
@@ -271,13 +282,17 @@ export function StatsPage() {
           <CardContent className="grid gap-3">
             {recentUrls.isPending ? (
               <Skeleton className="h-32 w-full" />
-            ) : recentUrls.error ? (
+            ) : recentUrls.isLoadingError ? (
               <p className="text-sm text-destructive">
                 {errorMessage(recentUrls.error)}
               </p>
             ) : recentUrls.data.data.length ? (
               recentUrls.data.data.map((url) => (
-                <RecentUrlCard key={url.id} url={url} />
+                <RecentUrlCard
+                  key={url.id}
+                  url={url}
+                  isNew={freshRecentIds.has(url.id)}
+                />
               ))
             ) : (
               <p className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">
@@ -297,7 +312,7 @@ export function StatsPage() {
         <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {creators.isPending ? (
             <Skeleton className="h-28 w-full" />
-          ) : creators.error ? (
+          ) : creators.isLoadingError ? (
             <p className="text-sm text-destructive">
               {errorMessage(creators.error)}
             </p>

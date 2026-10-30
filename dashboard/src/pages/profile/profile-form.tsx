@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { refreshEverywhere } from "@/lib/live";
 import { Eye, EyeOff, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { apiPatch } from "@/api/client";
@@ -21,7 +22,8 @@ export function ProfileForm({ user }: { user: User }) {
   const [profileError, setProfileError] = useState("");
   const [passwordError, setPasswordError] = useState("");
 
-  const refresh = async () => client.invalidateQueries({ queryKey: ["me"] });
+  // El nombre o correo propios también aparecen en Usuarios y en las demás pestañas abiertas
+  const refresh = async () => refreshEverywhere(client, [["me"], ["users"]]);
   const saveProfile = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setProfileError("");
