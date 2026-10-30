@@ -60,7 +60,8 @@ vercel.json           Rewrites del fallback SPA de /dashboard
 
 ### Endpoints
 
-- **Públicos:** `POST /api/urls/new` (acepta `Authorization: Bearer sk_...` opcional), `GET /api/urls/{code}`, `GET /{code}` (redirección 302).
+- **API pública para apps externas** (requiere API key en `x-api-key: sk_...` o `Authorization: Bearer sk_...`): `POST /api/urls/new`, `GET /api/urls/{code}`. Sin clave responden `401 {"error":"API key requerida"}`; con clave inválida o desactivada, `401 {"error":"API key inválida"}`.
+- **Redirección pública:** `GET /{code}` (302, sin API key).
 - **Sesión:** `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`.
 - **Administración** (requieren sesión): `/api/admin/users` (solo admin), `/api/admin/urls`, `/api/admin/api-keys`, `/api/admin/stats/*`.
 

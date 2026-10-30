@@ -11,6 +11,7 @@ Verificación contra producción: `https://acortador-de-urls-iota.vercel.app`. F
 | `POST /api/urls/new` → 400 (URL inválida) | `src/routes/public-urls.ts` + Zod (`isHttpUrl`) | `POST /api/urls/new` con `{"url":"ftp://..."}` | ✅ 400 `{error:"La URL proporcionada no es válida"}` |
 | `GET /api/urls/{code}` → 200 | `src/routes/public-urls.ts` (`getUrl`) | `GET /api/urls/aAdHKO` | ✅ 200 |
 | `GET /api/urls/{code}` → 404 | `src/routes/public-urls.ts` | `GET /api/urls/NOEXISTE` | ✅ 404 `{error:"URL no encontrada"}` |
+| API key obligatoria en `/api/urls/*` (`x-api-key` o `Authorization: Bearer`) | `src/middleware/api-key.ts` (`requireApiKey`) | Sin clave, clave inválida y clave desactivada | ✅ 401 `API key requerida` / `API key inválida` |
 | Redirección `GET /{code}` → 302 | `src/routes/redirect.ts` | `GET /aAdHKO` (sin seguir) | ✅ 302 con `Location` |
 | URLs borradas devuelven 404 | `src/routes/redirect.ts` (`isNull(deletedAt)`) | Borrado suave + GET | ✅ 404 |
 | OpenAPI (JSON) | `src/index.ts` (`api.doc('/doc')`) + `createRoute` en todas las rutas | `GET /api/doc` | ✅ 200 (JSON válido) |
@@ -25,6 +26,10 @@ Verificación contra producción: `https://acortador-de-urls-iota.vercel.app`. F
 | SKILL para agentes | `skills/acortador-urls/SKILL.md`, `GET /api/skill` | `GET /api/skill` | ✅ 200 (`text/markdown`) |
 | Autenticación (login/logout/me) | `src/routes/auth.ts` | `POST /api/auth/login` → 200 + cookie | ✅ |
 | Roles (admin/user) | `src/middleware/auth.ts` (`requireAuth`, `requireAdmin`) | `user` en `/api/admin/users` → 403 | ✅ |
+
+## Nota sobre la API key
+
+Los endpoints `/api/urls/*` exigen una API key activa en `x-api-key: sk_...` o `Authorization: Bearer sk_...` (issue #39). Las pruebas de la tabla se hacen con una clave válida; sin clave responden `401 {"error":"API key requerida"}` y con una clave inválida o desactivada `401 {"error":"API key inválida"}`. La redirección `GET /{code}` sigue siendo pública.
 
 ## Nota sobre las rutas de los ejemplos
 

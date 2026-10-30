@@ -18,7 +18,7 @@ Aplicación web de uso general (estilo dub.co) que acorta URLs y ofrece un dashb
 │  ├─ dev.ts             Servidor local (puerto 3000)
 │  ├─ db/                schema.ts e index.ts (Drizzle)
 │  ├─ routes/            Un router por recurso
-│  ├─ middleware/        Sesión, roles, seguridad
+│  ├─ middleware/        Sesión, roles, API keys, seguridad
 │  └─ lib/               Utilidades, esquemas, serializadores
 ├─ dashboard/            App React + Vite (compañero)
 ├─ public/               Build del dashboard (generado, gitignored)
@@ -34,8 +34,8 @@ Aplicación web de uso general (estilo dub.co) que acorta URLs y ofrece un dashb
 2. Hono monta los routers por recurso bajo `/api` (`/api/urls`, `/api/auth`, `/api/admin/*`).
 3. El middleware de seguridad (`hono/secure-headers`) añade CSP y cabeceras en todas las respuestas.
 4. La autenticación se basa en una cookie `session` firmada con JWT (`JWT_SECRET`).
-5. Las rutas de administración exigen sesión (`requireAuth`) y, cuando aplica, rol admin (`requireAdmin`).
-6. La redirección `GET /{code}` va al final para no tapar otras rutas; el clic se registra con `waitUntil` de `@vercel/functions`.
+5. Las rutas de administración exigen sesión (`requireAuth`) y, cuando aplica, rol admin (`requireAdmin`). La API pública `/api/urls/*` exige una API key (`requireApiKey`) en `x-api-key` o `Authorization: Bearer`; se comprueba antes que el body.
+6. La redirección `GET /{code}` es pública (sin API key) y va al final para no tapar otras rutas; el clic se registra con `waitUntil` de `@vercel/functions`.
 
 ## Modelo de datos
 
@@ -49,7 +49,7 @@ Aplicación web de uso general (estilo dub.co) que acorta URLs y ofrece un dashb
 ## Seguridad
 
 - **Login**: 5 fallos para la misma pareja IP + correo en 15 minutos bloquean 15 minutos. Un login correcto borra el contador. Respuesta 429 con `Retry-After`.
-- **Creación de URL**: 30 peticiones por minuto e IP sin clave válida (las claves inválidas consumen ese cupo) y 120 por minuto y API key válida. Respuesta 429 con `Retry-After`.
+- **API pública** (`/api/urls/*`): sin API key → 401 `API key requerida`; clave inválida o desactivada → 401 `API key inválida`. Las claves inválidas consumen un cupo de 30 por minuto e IP (luego 429). Crear URL con clave válida: 120 por minuto y API key. Respuesta 429 con `Retry-After`.
 - **IP**: primera entrada de `x-forwarded-for`, con fallback a `x-real-ip`, `cf-connecting-ip` o el socket.
 - **Cabeceras**: `hono/secure-headers` con CSP que permite `cdn.jsdelivr.net`, `fonts.scalar.com` y estilos/scripts en línea (Scalar y dashboard). HSTS solo en producción.
 - **Limpieza inline**: las filas viejas se borran probabilísticamente dentro de la misma petición.
