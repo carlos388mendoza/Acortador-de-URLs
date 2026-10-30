@@ -655,6 +655,57 @@ try {
   });
   await page.keyboard.press("Escape");
 
+  // Bloques de código de la SKILL: sin fondo de "código en línea" y con contraste alto (WCAG AAA, 7:1)
+  await page.goto(new URL("skill", baseUrl).toString(), {
+    waitUntil: "domcontentloaded",
+  });
+  await page.locator("pre code").first().waitFor();
+  const codeBlocks = await page.locator("pre code").evaluateAll((elements) => {
+    const channel = (value) => {
+      const c = value / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    // Tailwind 4 usa oklch(): un canvas convierte cualquier color CSS a RGB
+    const context = document.createElement("canvas").getContext("2d", {
+      willReadFrequently: true,
+    });
+    const lum = (css) => {
+      context.clearRect(0, 0, 1, 1);
+      context.fillStyle = css;
+      context.fillRect(0, 0, 1, 1);
+      const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
+      return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+    };
+    const isTransparent = (css) =>
+      css === "transparent" || css === "rgba(0, 0, 0, 0)";
+    return elements.map((code) => {
+      let block = code.parentElement;
+      while (block && isTransparent(getComputedStyle(block).backgroundColor))
+        block = block.parentElement;
+      const [light, dark] = [
+        lum(getComputedStyle(code).color),
+        lum(getComputedStyle(block ?? document.body).backgroundColor),
+      ].sort((a, b) => b - a);
+      return {
+        background: getComputedStyle(code).backgroundColor,
+        contrast: (light + 0.05) / (dark + 0.05),
+      };
+    });
+  });
+  for (const block of codeBlocks) {
+    if (!["transparent", "rgba(0, 0, 0, 0)"].includes(block.background))
+      throw new Error(
+        `El código dentro de un bloque tiene fondo propio (${block.background}) en modo ${themeLabel}`,
+      );
+    if (block.contrast < 7)
+      throw new Error(
+        `Contraste insuficiente en un bloque de código (${block.contrast.toFixed(1)}:1) en modo ${themeLabel}`,
+      );
+  }
+  console.log(
+    `✓ bloques de código de la SKILL legibles (${codeBlocks.length}, ${themeLabel})`,
+  );
+
   const macPage = await browser.newPage({
     viewport: { width: 1440, height: 900 },
     colorScheme: theme,
