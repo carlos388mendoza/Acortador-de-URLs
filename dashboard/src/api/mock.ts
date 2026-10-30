@@ -41,6 +41,11 @@ export const mockUrls: AdminUrl[] = [
     creator: { id: 2, name: "Carlos Mendoza" },
   },
 ];
+const daysAgo = (days: number) =>
+  new Date(Date.now() - days * 86_400_000)
+    .toISOString()
+    .replace(/\.\d{3}Z$/, "Z");
+// Varias claves con distintos dueños, fechas y estados para probar orden y filtros
 export const mockKeys: ApiKey[] = [
   {
     id: 201,
@@ -51,12 +56,48 @@ export const mockKeys: ApiKey[] = [
     created_at: now,
     owner: { id: mockUser.id, name: mockUser.name },
   },
+  {
+    id: 202,
+    name: "App móvil",
+    key_prefix: "sk_mov1",
+    is_active: true,
+    last_used_at: daysAgo(1),
+    created_at: daysAgo(10),
+    owner: { id: 2, name: "Carlos Mendoza" },
+  },
+  {
+    id: 203,
+    name: "Reportes semanales",
+    key_prefix: "sk_rep7",
+    is_active: true,
+    last_used_at: daysAgo(5),
+    created_at: daysAgo(3),
+    owner: { id: mockUser.id, name: mockUser.name },
+  },
+  {
+    id: 204,
+    name: "Script antiguo",
+    key_prefix: "sk_old9",
+    is_active: false,
+    last_used_at: daysAgo(30),
+    created_at: daysAgo(60),
+    owner: { id: 2, name: "Carlos Mendoza" },
+  },
+  {
+    id: 205,
+    name: "Prueba descartada",
+    key_prefix: "sk_tmp4",
+    is_active: false,
+    last_used_at: null,
+    created_at: daysAgo(20),
+    owner: { id: mockUser.id, name: mockUser.name },
+  },
 ];
 export const mockSummary: Summary = {
   total_urls: 3,
   total_clicks: 503,
   total_users: 2,
-  active_api_keys: 1,
+  active_api_keys: 3,
 };
 export const mockCreators: CreatorStat[] = [
   {
