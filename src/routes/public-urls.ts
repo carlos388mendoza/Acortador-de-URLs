@@ -1,16 +1,10 @@
 ﻿import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { and, eq, isNull } from 'drizzle-orm'
 import { getDb, schema } from '../db'
-import { hashApiKey } from '../lib/api-keys'
-import {
-  anonymousUrlLimit,
-  apiKeyUrlLimit,
-  checkRateLimit,
-  sendRateLimited,
-} from '../lib/rate-limit'
-import { getClientIp } from '../lib/request'
+import { apiKeyUrlLimit, checkRateLimit, sendRateLimited } from '../lib/rate-limit'
 import { ErrorSchema } from '../lib/schemas'
 import { buildShortUrl, generateCode, isHttpUrl, toIso } from '../lib/utils'
+import { requireApiKey, type ApiKeyEnv } from '../middleware/api-key'
 
 const INVALID_URL = 'La URL proporcionada no es válida'
 
@@ -41,32 +35,49 @@ function toPublic(row: UrlRow, requestUrl: string) {
   }
 }
 
-// `{}` significa "sin autenticación también es válido": el Bearer es opcional
-const optionalBearer: Record<string, string[]>[] = [{}, { bearerAuth: [] }]
+// Cada objeto es una alternativa: basta con una de las dos cabeceras
+const apiKeySecurity: Record<string, string[]>[] = [{ bearerAuth: [] }, { apiKeyHeader: [] }]
+
+const API_KEY_HELP =
+  'Requiere una API key activa en `x-api-key: sk_...` o en `Authorization: Bearer sk_...`. Sin clave: 401 `API key requerida`; clave inválida o desactivada: 401 `API key inválida`. Las claves inválidas cuentan para un límite de 30 intentos por minuto e IP.'
+
+const unauthorized = {
+  content: {
+    'application/json': {
+      schema: ErrorSchema,
+      examples: {
+        requerida: { summary: 'Sin API key', value: { error: 'API key requerida' } },
+        invalida: { summary: 'API key inválida o desactivada', value: { error: 'API key inválida' } },
+      },
+    },
+  },
+  description: 'Falta la API key, o es inválida o está desactivada',
+}
+
+const tooManyRequests = {
+  content: { 'application/json': { schema: ErrorSchema } },
+  description: 'Demasiadas solicitudes',
+  headers: z.object({
+    'Retry-After': z.string().openapi({ description: 'Segundos que faltan para poder reintentar' }),
+  }),
+}
 
 const createUrl = createRoute({
   method: 'post',
   path: '/new',
   tags: ['API pública'],
   summary: 'Crear una URL corta',
-  description:
-    'Opcional: con `Authorization: Bearer <api_key>` la URL queda asociada al dueño de la clave. Límites: 30 peticiones por minuto e IP sin clave válida y 120 por minuto y API key. Al superarlos devuelve 429 con `Retry-After`.',
-
-  security: optionalBearer,
+  description: `${API_KEY_HELP} La URL queda asociada al dueño de la clave. Límite: 120 creaciones por minuto y API key; al superarlo devuelve 429 con \`Retry-After\`.`,
+  security: apiKeySecurity,
+  middleware: [requireApiKey] as const,
   request: {
     body: { content: { 'application/json': { schema: CreateBodySchema } }, required: true },
   },
   responses: {
     201: { content: { 'application/json': { schema: PublicUrlSchema } }, description: 'URL creada' },
     400: { content: { 'application/json': { schema: ErrorSchema } }, description: 'URL no válida' },
-    401: { content: { 'application/json': { schema: ErrorSchema } }, description: 'API key inválida o desactivada' },
-    429: {
-      content: { 'application/json': { schema: ErrorSchema } },
-      description: 'Demasiadas solicitudes',
-      headers: z.object({
-        'Retry-After': z.string().openapi({ description: 'Segundos que faltan para poder reintentar' }),
-      }),
-    },
+    401: unauthorized,
+    429: tooManyRequests,
   },
 })
 
@@ -75,16 +86,21 @@ const getUrl = createRoute({
   path: '/{code}',
   tags: ['API pública'],
   summary: 'Obtener una URL por su código',
+  description: API_KEY_HELP,
+  security: apiKeySecurity,
+  middleware: [requireApiKey] as const,
   request: { params: z.object({ code: z.string().openapi({ example: 'aB3dE9' }) }) },
   responses: {
     200: { content: { 'application/json': { schema: PublicUrlSchema } }, description: 'URL encontrada' },
+    401: unauthorized,
     404: { content: { 'application/json': { schema: ErrorSchema } }, description: 'No existe' },
+    429: tooManyRequests,
   },
 })
 
 const MAX_CODE_ATTEMPTS = 5
 
-export const publicUrlsRouter = new OpenAPIHono({
+export const publicUrlsRouter = new OpenAPIHono<ApiKeyEnv>({
   defaultHook: (result, c) => {
     if (!result.success) return c.json({ error: INVALID_URL }, 400)
   },
@@ -92,46 +108,17 @@ export const publicUrlsRouter = new OpenAPIHono({
 
 publicUrlsRouter.openapi(createUrl, async (c) => {
   const { url } = c.req.valid('json')
-  const db = getDb()
-  const ip = getClientIp(c)
+  const apiKey = c.get('apiKey')
 
-  // Sin header: URL anónima. Con header: debe ser una key activa, si no, 401
-  let owner: { userId: number; apiKeyId: number } | null = null
-  let rateLimitKey = `url:ip:${ip}`
-  let rateLimit = anonymousUrlLimit()
-  const authorization = c.req.header('authorization')
-
-  if (authorization !== undefined) {
-    const match = /^Bearer\s+(\S+)$/i.exec(authorization.trim())
-    const [found] = match?.[1]
-      ? await db
-          .select({ id: schema.apiKeys.id, userId: schema.apiKeys.userId })
-          .from(schema.apiKeys)
-          .where(and(eq(schema.apiKeys.keyHash, await hashApiKey(match[1])), eq(schema.apiKeys.isActive, true)))
-          .limit(1)
-      : []
-
-    if (!found) {
-      // Una key inválida consume el cupo anónimo de la IP: no sirve para saltarse el límite
-      const limited = await checkRateLimit(rateLimitKey, rateLimit)
-      if (!limited.allowed) return sendRateLimited(c, limited.retryAfter)
-      return c.json({ error: 'API key inválida' }, 401)
-    }
-
-    owner = { userId: found.userId, apiKeyId: found.id }
-    rateLimitKey = `url:key:${found.id}`
-    rateLimit = apiKeyUrlLimit()
-    await db.update(schema.apiKeys).set({ lastUsedAt: new Date() }).where(eq(schema.apiKeys.id, found.id))
-  }
-
-  const limited = await checkRateLimit(rateLimitKey, rateLimit)
+  const limited = await checkRateLimit(`url:key:${apiKey.id}`, apiKeyUrlLimit())
   if (!limited.allowed) return sendRateLimited(c, limited.retryAfter)
 
+  const db = getDb()
   for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt++) {
     // onConflictDoNothing: si el código aleatorio ya existe, no falla y reintentamos con otro
     const [row] = await db
       .insert(schema.urls)
-      .values({ code: generateCode(), url, userId: owner?.userId ?? null, apiKeyId: owner?.apiKeyId ?? null })
+      .values({ code: generateCode(), url, userId: apiKey.userId, apiKeyId: apiKey.id })
       .onConflictDoNothing({ target: schema.urls.code })
       .returning()
     if (row) return c.json(toPublic(row, c.req.url), 201)
