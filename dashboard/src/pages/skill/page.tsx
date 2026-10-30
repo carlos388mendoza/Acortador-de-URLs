@@ -6,6 +6,8 @@ import {
   type ReactNode,
 } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
+// Sin este plugin, react-markdown no entiende tablas (son una extensión de GitHub, no Markdown estándar)
+import remarkGfm from "remark-gfm";
 import { Copy, Download, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { mocksEnabled } from "@/api/client";
@@ -24,7 +26,7 @@ function textFromCode(children: ReactNode) {
 
 export function SkillPage() {
   const mockContent =
-    "# SKILL para agentes\n\nUsa esta guía para integrar la API.\n\n```bash\ncurl -H 'Authorization: Bearer sk_TU_API_KEY' https://acortador-de-urls-iota.vercel.app/api/urls/new\n```";
+    '# SKILL para agentes\n\nUsa esta guía para integrar la API.\n\n```bash\ncurl -H \'Authorization: Bearer sk_TU_API_KEY\' https://acortador-de-urls-iota.vercel.app/api/urls/new\n```\n\n## Errores\n\n| Código | Cuerpo | Cuándo |\n|---|---|---|\n| 400 | `{ "error": "La URL proporcionada no es válida" }` | URL no http/https o body inválido |\n| 404 | `{ "error": "URL no encontrada" }` | Código inexistente o URL borrada |';
   const [content, setContent] = useState(mocksEnabled ? mockContent : "");
   const [error, setError] = useState("");
 
@@ -110,6 +112,27 @@ export function SkillPage() {
         {children}
       </code>
     ),
+    // La tabla se desplaza dentro de su recuadro en el celular, sin ensanchar la página
+    table: ({ children }: { children?: React.ReactNode }) => (
+      <div className="my-4 overflow-x-auto rounded-xl border border-border">
+        <table className="w-full border-collapse text-left text-sm">
+          {children}
+        </table>
+      </div>
+    ),
+    thead: ({ children }: { children?: React.ReactNode }) => (
+      <thead className="bg-muted">{children}</thead>
+    ),
+    th: ({ children }: { children?: React.ReactNode }) => (
+      <th className="whitespace-nowrap px-3 py-2 font-semibold text-foreground">
+        {children}
+      </th>
+    ),
+    td: ({ children }: { children?: React.ReactNode }) => (
+      <td className="border-t border-border px-3 py-2 align-top text-muted-foreground">
+        {children}
+      </td>
+    ),
     pre: ({ children }: { children?: React.ReactNode }) => {
       const code = textFromCode(children);
       return (
@@ -173,7 +196,9 @@ export function SkillPage() {
       ) : content ? (
         <Card>
           <CardContent className="p-5 sm:p-8">
-            <ReactMarkdown components={components}>{content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+              {content}
+            </ReactMarkdown>
           </CardContent>
         </Card>
       ) : (
