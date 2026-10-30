@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build --outDir ../public/dashboard --emptyOutDir",
     "lint": "oxlint src",
     "preview": "vite preview --host 0.0.0.0",
-    "check:responsive": "node scripts/responsive.mjs light && node scripts/responsive.mjs dark",
+    "check:responsive": "node scripts/responsive.mjs light && node scripts/responsive.mjs dark && node scripts/qr-csp.mjs",
     "format": "prettier --write src scripts",
     "format:check": "prettier --check src scripts"
   },
