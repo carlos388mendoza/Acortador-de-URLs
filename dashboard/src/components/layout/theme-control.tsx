@@ -10,7 +10,8 @@ const options: { value: Theme; label: string; icon: typeof Sun }[] = [
 
 export function ThemeControl() {
   const { theme, cycleTheme } = useDashboardTheme();
-  const current = options.find((option) => option.value === theme) ?? options[2];
+  const current =
+    options.find((option) => option.value === theme) ?? options[2];
   const Icon = current.icon;
 
   return (
