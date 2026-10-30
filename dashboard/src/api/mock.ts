@@ -112,11 +112,58 @@ export const mockCreators: CreatorStat[] = [
   },
 ];
 
+/**
+ * Controles del servidor simulado para las pruebas de actualización en vivo (scripts/live.mjs).
+ * Solo existen con VITE_USE_MOCKS en desarrollo; en producción esta rama se elimina al compilar.
+ */
+const mockControl = { requests: 0, failing: false };
+if (!import.meta.env.PROD && import.meta.env.VITE_USE_MOCKS === "true") {
+  Object.assign(window, {
+    __mockServer: {
+      get requests() {
+        return mockControl.requests;
+      },
+      fail(on: boolean) {
+        mockControl.failing = on;
+      },
+      addClicks(code: string, amount: number) {
+        const url = mockUrls.find((item) => item.code === code);
+        if (!url) return;
+        url.click_count += amount;
+        mockSummary.total_clicks += amount;
+      },
+      addUrl(code: string) {
+        mockUrls.unshift({
+          id: 1000 + mockUrls.length,
+          code,
+          url: `https://ejemplo.com/${code}`,
+          short_url: `http://localhost:3000/${code}`,
+          click_count: 0,
+          created_at: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+          updated_at: now,
+          creator: { id: mockUser.id, name: mockUser.name },
+        });
+        mockSummary.total_urls += 1;
+      },
+    },
+  });
+}
+
 export async function mockRequest(
   path: string,
   init: RequestInit = {},
 ): Promise<unknown> {
+  mockControl.requests += 1;
   await new Promise((resolve) => setTimeout(resolve, 180));
+  if (mockControl.failing) throw new Error("Servidor simulado sin conexión");
+  // Como la red real: cada respuesta es una copia nueva, no los mismos objetos que guarda el simulador
+  const result = handleMockRequest(path, init);
+  return result === null
+    ? null
+    : (JSON.parse(JSON.stringify(result)) as unknown);
+}
+
+function handleMockRequest(path: string, init: RequestInit): unknown {
   const method = init.method ?? "GET";
   const url = new URL(path, window.location.origin);
   const body = init.body
