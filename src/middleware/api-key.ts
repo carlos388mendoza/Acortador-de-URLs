@@ -7,10 +7,14 @@ import { getClientIp } from '../lib/request'
 
 export type ApiKeyEnv = { Variables: { apiKey: { id: number; userId: number } } }
 
-/** null = la cabecera no vino; '' = vino pero sin una clave utilizable. */
+/**
+ * null = no se mandó ninguna clave (cabecera ausente, vacía o solo "Bearer", como hace Scalar sin token);
+ * '' = se mandó algo que no es una clave utilizable.
+ */
 function keyFromAuthorization(header: string | undefined): string | null {
-  if (header === undefined || header.trim() === '') return null
-  return /^Bearer\s+(\S+)$/i.exec(header.trim())?.[1] ?? ''
+  const value = header?.trim() ?? ''
+  if (value === '' || /^Bearer$/i.test(value)) return null
+  return /^Bearer\s+(\S+)$/i.exec(value)?.[1] ?? ''
 }
 
 /**

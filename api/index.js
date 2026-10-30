@@ -41437,8 +41437,9 @@ authRouter.openapi(updateMe, async (c) => {
 
 // src/middleware/api-key.ts
 function keyFromAuthorization(header) {
-  if (header === void 0 || header.trim() === "") return null;
-  return /^Bearer\s+(\S+)$/i.exec(header.trim())?.[1] ?? "";
+  const value = header?.trim() ?? "";
+  if (value === "" || /^Bearer$/i.test(value)) return null;
+  return /^Bearer\s+(\S+)$/i.exec(value)?.[1] ?? "";
 }
 var requireApiKey = createMiddleware(async (c, next2) => {
   const fromHeader = c.req.header("x-api-key")?.trim() || null;
@@ -41767,6 +41768,10 @@ app.get(
 );
 api.notFound((c) => c.json({ error: "Ruta no encontrada" }, 404));
 api.onError((err, c) => {
+  if (err instanceof HTTPException && err.status < 500) {
+    const message = c.req.path.startsWith("/api/urls") ? "La URL proporcionada no es v\xE1lida" : "El cuerpo de la petici\xF3n no es un JSON v\xE1lido";
+    return c.json({ error: message }, 400);
+  }
   console.error(err);
   return c.json({ error: "Error interno del servidor" }, 500);
 });
