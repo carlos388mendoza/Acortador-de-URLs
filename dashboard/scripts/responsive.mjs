@@ -468,6 +468,69 @@ try {
   await page.keyboard.press("Escape");
   console.log("✓ menú lateral móvil desplazable a 600px de alto");
 
+  // #49: el pie de cuenta ocupa una sola fila y "Usuarios" se alcanza sin quedar tapado
+  const checkSidebarSpace = async (scope, label, mustFitWithoutScroll) => {
+    const result = await scope.evaluate((root, fit) => {
+      const list = root.querySelector(
+        'nav[aria-label="Navegación principal"] > div:last-child',
+      );
+      const footer = root.querySelector('[data-slot="sidebar-footer"]');
+      const users = [...(list?.querySelectorAll("a") ?? [])].find((link) =>
+        link.textContent?.trim().startsWith("Usuarios"),
+      );
+      if (!list || !footer || !users) return { error: "faltan elementos" };
+      const scrolledBefore = list.scrollHeight > list.clientHeight + 1;
+      if (!fit) list.scrollTop = list.scrollHeight;
+      const listBox = list.getBoundingClientRect();
+      const userBox = users.getBoundingClientRect();
+      const footerBox = footer.getBoundingClientRect();
+      return {
+        footerHeight: Math.round(footerBox.height),
+        listHeight: Math.round(listBox.height),
+        usersVisible:
+          userBox.top >= listBox.top - 1 &&
+          userBox.bottom <= listBox.bottom + 1 &&
+          userBox.bottom <= footerBox.top + 1,
+        needsScroll: scrolledBefore,
+      };
+    }, mustFitWithoutScroll);
+    if ("error" in result)
+      throw new Error(`Barra lateral (${label}): ${result.error}`);
+    if (result.footerHeight > 64)
+      throw new Error(
+        `El pie de cuenta mide ${result.footerHeight}px en ${label} (máx. 64)`,
+      );
+    if (!result.usersVisible)
+      throw new Error(`"Usuarios" queda tapado o fuera de vista en ${label}`);
+    if (mustFitWithoutScroll && result.needsScroll)
+      throw new Error(
+        `La lista no cabe sin desplazarse en ${label} (alto ${result.listHeight}px)`,
+      );
+  };
+  await page.setViewportSize({ width: 1440, height: 600 });
+  await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  await page.locator("aside").waitFor({ state: "visible" });
+  await checkSidebarSpace(page.locator("aside"), "escritorio a 600px", false);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await checkSidebarSpace(page.locator("aside"), "escritorio a 900px", true);
+  for (const [height, mustFit] of [
+    [600, false],
+    [812, true],
+  ]) {
+    await page.setViewportSize({ width: 375, height });
+    await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+    await page.getByRole("button", { name: "Abrir menú lateral" }).click();
+    const sheet = page.locator('[data-slot="sheet-content"][data-side="left"]');
+    await sheet.waitFor({ state: "visible" });
+    await checkSidebarSpace(sheet, `panel móvil a 375×${height}`, mustFit);
+    if (height === 812)
+      await sheet.screenshot({
+        path: `screenshots/panel-lateral-${themeLabel}.png`,
+      });
+    await page.keyboard.press("Escape");
+  }
+  console.log(`✓ barra lateral con pie compacto y "Usuarios" visible`);
+
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
   await page.locator("aside").waitFor({ state: "visible" });

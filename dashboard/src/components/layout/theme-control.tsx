@@ -8,11 +8,27 @@ const options: { value: Theme; label: string; icon: typeof Sun }[] = [
   { value: "system", label: "Automático", icon: Monitor },
 ];
 
-export function ThemeControl() {
+/** `compact`: solo el ícono, para el pie de la barra lateral donde el espacio es poco. */
+export function ThemeControl({ compact = false }: { compact?: boolean }) {
   const { theme, cycleTheme } = useDashboardTheme();
   const current =
     options.find((option) => option.value === theme) ?? options[2];
   const Icon = current.icon;
+
+  if (compact)
+    return (
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        aria-label={`Tema actual: ${current.label}. Cambiar tema`}
+        title={`Tema: ${current.label}. Clic para cambiar`}
+        onClick={cycleTheme}
+        className="size-9 shrink-0 rounded-xl text-muted-foreground hover:text-foreground"
+      >
+        <Icon className="size-4" />
+      </Button>
+    );
 
   return (
     <Button
