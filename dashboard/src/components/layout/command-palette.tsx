@@ -109,7 +109,7 @@ export function CommandPalette({
               placeholder="Busca URLs, usuarios, keys o acciones..."
               value={search}
               onValueChange={setSearch}
-              className="h-11 border-0 text-base shadow-none focus-visible:ring-0"
+              className="h-11 border-0 text-base shadow-none focus-visible:outline-none focus-visible:ring-0"
             />
             <Kbd className="shrink-0">Esc</Kbd>
           </div>
@@ -121,7 +121,7 @@ export function CommandPalette({
             <CommandItem value="Nueva URL crear enlace" onSelect={onCreateUrl}>
               <Plus />
               <span>Nueva URL</span>
-              <span className="ml-auto text-xs text-muted-foreground">
+              <span className="ml-auto shrink-0 text-xs text-muted-foreground">
                 Acción
               </span>
             </CommandItem>
@@ -131,7 +131,7 @@ export function CommandPalette({
             >
               <KeyRound />
               <span>Nueva API key</span>
-              <span className="ml-auto text-xs text-muted-foreground">
+              <span className="ml-auto shrink-0 text-xs text-muted-foreground">
                 Acción
               </span>
             </CommandItem>
@@ -155,7 +155,7 @@ export function CommandPalette({
             <CommandItem value="Cerrar sesión salir" onSelect={onRequestLogout}>
               <LogOut />
               <span>Cerrar sesión</span>
-              <span className="ml-auto text-xs text-muted-foreground">
+              <span className="ml-auto shrink-0 text-xs text-muted-foreground">
                 Acción
               </span>
             </CommandItem>
@@ -232,7 +232,7 @@ export function CommandPalette({
                     <span className="min-w-0 truncate">
                       {url.code} · {url.url}
                     </span>
-                    <span className="ml-auto text-xs text-muted-foreground">
+                    <span className="ml-auto shrink-0 text-xs text-muted-foreground">
                       URL
                     </span>
                   </CommandItem>
@@ -249,7 +249,7 @@ export function CommandPalette({
                     <span className="min-w-0 truncate">
                       {user.name} · {user.email}
                     </span>
-                    <span className="ml-auto text-xs text-muted-foreground">
+                    <span className="ml-auto shrink-0 text-xs text-muted-foreground">
                       Usuario
                     </span>
                   </CommandItem>
@@ -266,7 +266,7 @@ export function CommandPalette({
                     <span className="min-w-0 truncate">
                       {key.name} · {key.key_prefix}
                     </span>
-                    <span className="ml-auto text-xs text-muted-foreground">
+                    <span className="ml-auto shrink-0 text-xs text-muted-foreground">
                       Key
                     </span>
                   </CommandItem>
@@ -306,7 +306,9 @@ function PaletteLink({
     >
       <Icon />
       <span>{label}</span>
-      <span className="ml-auto text-xs text-muted-foreground">{subtitle}</span>
+      <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+        {subtitle}
+      </span>
     </CommandItem>
   );
 }
