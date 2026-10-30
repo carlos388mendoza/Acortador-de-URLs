@@ -61,7 +61,7 @@ Códigos reservados que nunca se pueden usar como código corto: `api`, `dashboa
 ## API pública (definida por los requisitos del proyecto)
 
 Los dos endpoints `/api/urls/*` son para apps externas y **exigen una API key activa** en `x-api-key: <api_key>` o en `Authorization: Bearer <api_key>` (basta una de las dos; si vienen ambas deben traer la misma clave):
-- Sin clave → `401 { "error": "API key requerida" }`.
+- Sin clave → `401 { "error": "API key requerida" }`. También cuenta como "sin clave" una cabecera vacía o `Authorization: Bearer` sin nada detrás (lo que envía Scalar sin token).
 - Clave inexistente, desactivada, `Authorization` sin formato Bearer o dos claves distintas → `401 { "error": "API key inválida" }`.
 - Cada uso válido actualiza `last_used_at`. La clave se comprueba antes que el body: sin clave válida siempre es `401`, aunque el body sea inválido.
 
@@ -237,6 +237,7 @@ Los límites se aplican por IP (primera entrada de `x-forwarded-for`; si no hay,
 Detalles que el contrato no fija y que el backend resolvió así (el dashboard puede depender de ellos):
 
 - Validación fallida → `400 { "error": "Mensaje en español" }` (primer error de validación).
+- Body con JSON mal escrito → `400`, nunca `500`: en `/api/urls/*` con `{ "error": "La URL proporcionada no es válida" }` y en el resto con `{ "error": "El cuerpo de la petición no es un JSON válido" }`.
 - `limit` mayor a 100 se recorta a 100 (no da error). `page` o `limit` menores a 1 → 400. `days` en clicks-per-day: por defecto 30, máximo 365.
 - Un admin que intenta borrarse a sí mismo o quitarse su propio rol → `400`.
 - API keys: una key ajena (para un `user`) → `403`; una URL ajena o borrada → `404`.
